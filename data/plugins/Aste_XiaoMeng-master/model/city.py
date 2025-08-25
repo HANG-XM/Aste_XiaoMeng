@@ -2559,7 +2559,7 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
             return f"ℹ️ {user_name} 你已刑满，需手动发送[出狱]操作！"
 
     current_robber_stamina = robber_data.get("stamina", 0)
-    if current_robber_stamina < 1:
+    if current_robber_stamina < constants.ROB_STAMINA:
         return f"{user_name} 你现在没有体力了，无法继续打劫！"
     current_victim_gold = victim_data.get("coin", 0)
     if current_victim_gold <= 0:
@@ -2577,7 +2577,7 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
             section=account, data={"last_rob_date": today, "rob_count_today": 0}
         )
     # 减少打劫者体力
-    new_robber_stamina = current_robber_stamina - 2
+    new_robber_stamina = current_robber_stamina - constants.ROB_STAMINA
     user_manager.update_key(section=account, key="stamina", value=new_robber_stamina)
 
     # ---- 动态计算可抢金额 ----

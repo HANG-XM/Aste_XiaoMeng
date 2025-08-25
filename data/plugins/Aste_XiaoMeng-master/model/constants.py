@@ -7,15 +7,15 @@ SUCCESS_PREFIX = "✅ 操作完成"
 # 签到奖励基础配置
 CHECK_IN_FIRST_REWARD_GOLD = 500       # 首次签到奖励金币数
 CHECK_IN_FIRST_REWARD_EXP = 100        # 首次签到奖励经验值
-CHECK_IN_FIRST_REWARD_STAMINA = 98     # 首次签到奖励体力值
+CHECK_IN_FIRST_REWARD_STAMINA = 68     # 首次签到奖励体力值
 
 CHECK_IN_CONTINUOUS_REWARD_GOLD = 200  # 连续签到（非首次）奖励金币数
-CHECK_IN_CONTINUOUS_REWARD_EXP = 30    # 连续签到（非首次）奖励经验值
+CHECK_IN_CONTINUOUS_REWARD_EXP = 28    # 连续签到（非首次）奖励经验值
 CHECK_IN_CONTINUOUS_REWARD_STAMINA = 30 # 连续签到（非首次）奖励体力值
 
 CHECK_IN_BREAK_REWARD_GOLD = 100       # 断签补偿金币数
 CHECK_IN_BREAK_REWARD_EXP = 10         # 断签补偿经验值
-CHECK_IN_BREAK_REWARD_STAMINA = 100    # 断签补偿体力值
+CHECK_IN_BREAK_REWARD_STAMINA = 58    # 断签补偿体力值
 
 WORK_DURATION_SECONDS = 3600                       # 单次打工任务的持续时间（单位：秒，当前为1小时）
 
@@ -39,6 +39,7 @@ ROB_SUCCESS_RATE = 50                  # 打劫基础成功率（50%）
 JAIL_TIME = 60                         # 打劫失败入狱时长（单位：秒）
 BAIL_FEE = 200                         # 保释费用
 RELEASED_STAMINA = 2                   # 出狱消耗体力
+ROB_STAMINA = 2                        # 打劫消耗体力
 ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（含文案、体力消耗、金币变化）
     {"text": "🚔 打劫途中你被巡逻的警察发现了，不仅没抢到，还被罚了 10 金币！",
      "stamina_loss": 1, "coin_change": -10},
