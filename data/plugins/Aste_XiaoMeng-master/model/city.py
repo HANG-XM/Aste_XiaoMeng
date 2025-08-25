@@ -2636,12 +2636,11 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
 def released(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""
     try:
-
-        user_manager = IniFileReader(
+        rob_manager = IniFileReader(
             project_root=path, subdir_name="City/Record", file_relative_path="Rob.data", encoding="utf-8"
         )
         # 检测当前入狱状态（可选）
-        current_jail_time = user_manager.read_key(section=account, key="jail_time")
+        current_jail_time = rob_manager.read_key(section=account, key="jail_time")
         if current_jail_time <= 0:
             return f"{user_name} 你未入狱，无需出狱！"
         # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
@@ -2649,8 +2648,18 @@ def released(account:str, user_name:str, path) -> str:
             remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
             return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
 
+        user_manager = IniFileReader(
+            project_root=path,subdir_name="City/Personal",file_relative_path="Briefly.info",encoding="utf-8"
+        )
+        user_stamina =user_manager.read_key(section=account, key="stamina")
+        if user_stamina < constants.RELEASED_STAMINA:
+            return f"{user_name} 体力不足，休息一会再出狱吧！"
+        new_stamina = user_stamina - constants.RELEASED_STAMINA
+        user_manager.update_key(section=account, key="stamina", value=new_stamina)
+        user_manager.save(encoding="utf-8")
         # 清除入狱时间（设置为0表示未入狱）
-        user_manager.update_key(section=account, key="jail_time", value=0)
+        rob_manager.update_key(section=account, key="jail_time", value=0)
+        rob_manager.save(encoding="utf-8")
         # 可选：同步其他状态（如体力、金币）
         return f"用户 {user_name} 已成功出狱！"
     except Exception as e:
@@ -2700,6 +2709,17 @@ def post_bail(account:str, user_name:str,msg:str, path):
     rob_manager.save(encoding="utf-8")
     return f"{user_name} 保释成功！你支付了 {constants.BAIL_FEE} 金币～"
 
+def prison_break(account:str, user_name:str, path):
+    rob_manager = IniFileReader(
+        project_root=path,
+        subdir_name="City/Record",
+        file_relative_path="Rob.data",
+        encoding="utf-8",
+    )
+    rob_time = rob_manager.read_key(section=account, key="jail_time")
+    if rob_time == 0:
+        return "当前你未在监狱里面！无需越狱！"
+
 def fish_menu():
     return (
         "🌊 您现在在湖边钓鱼～\n"
@@ -2710,8 +2730,6 @@ def fish_menu():
         "▸ 钓鱼图鉴（了解鱼的信息）"
     )
 
-def prison_break(account:str, user_name:str, path):
-    pass
 
 if __name__ == "__main__":
     pass

@@ -38,6 +38,7 @@ TRANSFER_PROCESSING_FEE_RATE = 0.05                 # 转账手续费率（5%，
 ROB_SUCCESS_RATE = 50                  # 打劫基础成功率（50%）
 JAIL_TIME = 60                         # 打劫失败入狱时长（单位：秒）
 BAIL_FEE = 200                         # 保释费用
+RELEASED_STAMINA = 2                   # 出狱消耗体力
 ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（含文案、体力消耗、金币变化）
     {"text": "🚔 打劫途中你被巡逻的警察发现了，不仅没抢到，还被罚了 10 金币！",
      "stamina_loss": 1, "coin_change": -10},
