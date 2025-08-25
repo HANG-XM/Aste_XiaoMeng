@@ -343,7 +343,7 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
         file_relative_path="Briefly.info",
         encoding="utf-8"
     )
-    user_stamina = user_manager.read_key(section=account, key="stamina")
+    user_stamina = user_manager.read_key(section=account, key="stamina",default=0)
     if job_stamina > user_stamina:
         return "体力不足，无法进行[打工]！"
     work_date = datetime.strptime(work_data.get("work_date", "1970-01-01"), "%Y-%m-%d").date()
@@ -2547,7 +2547,7 @@ def released(account:str, user_name:str, path) -> str:
             project_root=path, subdir_name="City/Record", file_relative_path="Rob.data", encoding="utf-8"
         )
         # 检测当前入狱状态（可选）
-        current_jail_time = rob_manager.read_key(section=account, key="jail_time")
+        current_jail_time = rob_manager.read_key(section=account, key="jail_time",default=0)
         if current_jail_time <= 0:
             return f"{user_name} 你未入狱，无需出狱！"
         # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
@@ -2558,7 +2558,7 @@ def released(account:str, user_name:str, path) -> str:
         user_manager = IniFileReader(
             project_root=path,subdir_name="City/Personal",file_relative_path="Briefly.info",encoding="utf-8"
         )
-        user_stamina =user_manager.read_key(section=account, key="stamina")
+        user_stamina =user_manager.read_key(section=account, key="stamina",default=0)
         if user_stamina < constants.RELEASED_STAMINA:
             return f"{user_name} 体力不足，休息一会再出狱吧！"
         new_stamina = user_stamina - constants.RELEASED_STAMINA
@@ -2596,7 +2596,7 @@ def post_bail(account:str, user_name:str,msg:str, path):
         logger.error(f"保释操作异常：{str(e)}")
         return "系统繁忙，请稍后再试！"
 
-    rob_time = rob_manager.read_key(section=target_qq, key="jail_time")
+    rob_time = rob_manager.read_key(section=target_qq, key="jail_time",default=0)
     if rob_time == 0:
         return f"{user_name} 他没有在监狱中哦！"
 
@@ -2606,7 +2606,7 @@ def post_bail(account:str, user_name:str,msg:str, path):
         file_relative_path="Briefly.info",
         encoding="utf-8",
     )
-    user_gold = user_manager.read_key(section=account, key="coin")
+    user_gold = user_manager.read_key(section=account, key="coin",default=0)
     if user_gold < constants.BAIL_FEE:
         return f"{user_name} 保释需要 {constants.BAIL_FEE} 金币，你的金币不足！"
     new_gold = user_gold - constants.BAIL_FEE
@@ -2639,7 +2639,7 @@ def prison_break(account:str, user_name:str, path):
             file_relative_path="Rob.data",
             encoding="utf-8",
         )
-        rob_time = rob_manager.read_key(section=account, key="jail_time")
+        rob_time = rob_manager.read_key(section=account, key="jail_time",default=0)
     except Exception as e:
         logger.error(f"读取打劫数据错误：{str(e)}")
         return "系统繁忙！请稍后重试！"
@@ -2653,7 +2653,7 @@ def prison_break(account:str, user_name:str, path):
             file_relative_path="Briefly.info",
             encoding="utf-8",
         )
-        user_stamina = user_manager.read_key(section=account, key="stamina")
+        user_stamina = user_manager.read_key(section=account, key="stamina",default=0)
     except Exception as e:
         logger.error(f"读取打劫数据错误：{str(e)}")
         return "系统繁忙！请稍后重试！"
