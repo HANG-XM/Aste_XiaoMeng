@@ -2509,6 +2509,7 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
         event = random.choice(constants.ROB_FAILURE_EVENTS)
         coin_change = event["coin_change"]
         stamina_loss = event["stamina_loss"]
+        jail = event["jail"]
 
         new_robber_gold = max(0, current_robber_gold + coin_change)
         new_robber_stamina = max(0, current_robber_stamina - stamina_loss)
@@ -2518,10 +2519,10 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
             "coin": new_robber_gold,
             "stamina": new_robber_stamina
         })
-
         result_text = event["text"]
-        result_text += f"{user_name} 你因打劫被关进监狱，剩余入狱秒数：{constants.JAIL_TIME} 秒！"
-        rob_manager.update_key(section=account,key="jail_time",value=time.time())
+        if jail:
+            result_text += f"{user_name} 你因打劫被关进监狱，剩余入狱秒数：{constants.JAIL_TIME} 秒！"
+            rob_manager.update_key(section=account,key="jail_time",value=time.time())
 
     # ---- 公共逻辑：更新打劫次数&日期 & 保存数据 ----
     rob_count_today += 1
@@ -2529,7 +2530,6 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
         section=account,
         data={"rob_count_today": rob_count_today, "last_rob_date": today}
     )
-
     try:
         user_manager.save(encoding="utf-8")
         rob_manager.save(encoding="utf-8")

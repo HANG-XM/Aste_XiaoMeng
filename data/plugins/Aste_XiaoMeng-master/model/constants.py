@@ -25,9 +25,12 @@ SUBMIT_RESUME_LIMIT = 5 # 投简历每日上限
 
 # 工作异常状态（job_data不存在）
 WORK_ERROR_TEXTS = [
-    lambda user_name: f"{user_name} 检测到工作信息异常～可能是之前的工作已被撤销！系统已重置记录，快发送[找工作]找新机会吧～",
-    lambda user_name: f"{user_name} 哎呀，工作数据好像丢失了～别慌，已自动清空旧记录，重新[找工作]就能恢复打工状态啦～",
-    lambda user_name: f"注意！{user_name}的工作记录异常（可能是系统错误）～已帮你重置，发送[找工作]获取最新岗位列表吧～"
+    lambda user_name:
+        f"{user_name} 检测到工作信息异常～可能是之前的工作已被撤销！系统已重置记录，快发送[找工作]找新机会吧～",
+    lambda user_name:
+        f"{user_name} 哎呀，工作数据好像丢失了～别慌，已自动清空旧记录，重新[找工作]就能恢复打工状态啦～",
+    lambda user_name:
+        f"注意！{user_name}的工作记录异常（可能是系统错误）～已帮你重置，发送[找工作]获取最新岗位列表吧～"
 ]
 WORK_NO_JOB_TEXTS = [
     lambda user_name:
@@ -41,36 +44,40 @@ WORK_NO_JOB_TEXTS = [
 ]
 # 开始工作状态
 WORK_START_WORK_TEXTS = [
-    lambda user_name,jobname: f"🎉 {user_name} 成功入职{jobname}！时钟开始转动，专注1小时就能领取今日工资啦～加油冲！",
-    lambda user_name,jobname: f"叮咚～{user_name}的{jobname}工作签到成功！现在开始工作，1小时后工资自动到账～",
-    lambda user_name,jobname: f"欢迎{user_name}加入{jobname}团队！工作倒计时启动，坚持1小时，工资马上到账～",
-    lambda user_name,jobname: f"{user_name} 已选择{jobname}作为今日工作～倒计时开始，1小时后就能收获劳动成果啦！",
-    lambda user_name,jobname: f"不错哦{user_name}！{jobname}的工作开始～就完事了～"
+    lambda user_name,jobname:
+        f"🎉 {user_name} 成功入职{jobname}！时钟开始转动，专注1小时就能领取今日工资啦～加油冲！",
+    lambda user_name,jobname:
+        f"叮咚～{user_name}的{jobname}工作签到成功！现在开始工作，1小时后工资自动到账～",
+    lambda user_name,jobname:
+        f"欢迎{user_name}加入{jobname}团队！工作倒计时启动，坚持1小时，工资马上到账～",
+    lambda user_name,jobname:
+        f"{user_name} 已选择{jobname}作为今日工作～倒计时开始，1小时后就能收获劳动成果啦！",
+    lambda user_name,jobname:
+        f"不错哦{user_name}！{jobname}的工作开始～就完事了～"
 ]
 # 工作中剩余时间提示（动态计算）
 WORK_WORKING_TEXTS = [
-    lambda
-        user_name, job_name, minutes_remaining:
-            f"{user_name} 正在{job_name}岗位上专注工作～再坚持{minutes_remaining}分钟，就能下班领工资啦！加油！",
-    lambda
-        user_name, job_name, minutes_remaining:
-            f"加油{user_name}！{job_name}的工作还剩{minutes_remaining}分钟，完成就能收获工资～坚持就是胜利～",
-    lambda
-        user_name, job_name, minutes_remaining:
-            f"专注{user_name}！{job_name}岗位计时：剩余{minutes_remaining}分钟，工资马上到账～再忍忍哦～",
-    lambda
-        user_name, job_name, minutes_remaining:
-            f"{user_name} 的{job_name}工作时间进度：还差{minutes_remaining}分钟完成～冲鸭，工资在向你招手！",
-    lambda
-        user_name, job_name, minutes_remaining:
-            f"嘿{user_name}，{job_name}的工作还剩{minutes_remaining}分钟～坚持住，马上就能领工资喝奶茶啦～"
+    lambda user_name, job_name, minutes_remaining:
+        f"{user_name} 正在{job_name}岗位上专注工作～再坚持{minutes_remaining}分钟，就能下班领工资啦！加油！",
+    lambda user_name, job_name, minutes_remaining:
+        f"加油{user_name}！{job_name}的工作还剩{minutes_remaining}分钟，完成就能收获工资～坚持就是胜利～",
+    lambda user_name, job_name, minutes_remaining:
+        f"专注{user_name}！{job_name}岗位计时：剩余{minutes_remaining}分钟，工资马上到账～再忍忍哦～",
+    lambda user_name, job_name, minutes_remaining:
+        f"{user_name} 的{job_name}工作时间进度：还差{minutes_remaining}分钟完成～冲鸭，工资在向你招手！",
+    lambda user_name, job_name, minutes_remaining:
+        f"嘿{user_name}，{job_name}的工作还剩{minutes_remaining}分钟～坚持住，马上就能领工资喝奶茶啦～"
 ]
 # 可领取工资状态（工作完成）
 WORK_REWARD_READY_TEXTS = [
-    lambda user_name,jobname: f"⏰ {user_name} 的{jobname}工作时间已满！点击[领工资]，辛苦1小时的报酬马上到账～",
-    lambda user_name,jobname: f"完工！{user_name} 专注工作1小时，{jobname}的工资已备好，发送[领工资]就能领取啦～",
-    lambda user_name,jobname: f"时间到～{user_name} 的{jobname}打工任务圆满完成！[领工资]按钮已点亮，速来查收工资～",
-    lambda user_name,jobname: f"{user_name} 坚持了1小时{jobname}工作！系统检测到任务完成，现在发送[领工资]就能收获报酬啦～"
+    lambda user_name,jobname:
+        f"⏰ {user_name} 的{jobname}工作时间已满！点击[领工资]，辛苦1小时的报酬马上到账～",
+    lambda user_name,jobname:
+        f"完工！{user_name} 专注工作1小时，{jobname}的工资已备好，发送[领工资]就能领取啦～",
+    lambda user_name,jobname:
+        f"时间到～{user_name} 的{jobname}打工任务圆满完成！[领工资]按钮已点亮，速来查收工资～",
+    lambda user_name,jobname:
+        f"{user_name} 坚持了1小时{jobname}工作！系统检测到任务完成，现在发送[领工资]就能收获报酬啦～"
 ]
 WORK_DATE_RESET_TIPS = [
     lambda user_name:f"🌞 新的一天开始啦！{user_name}昨天的工作记录已清空，快去[打工]领取今日份工资吧～",
@@ -96,17 +103,17 @@ RELEASED_STAMINA = 2                   # 出狱消耗体力
 ROB_STAMINA = 2                        # 打劫消耗体力
 ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（含文案、体力消耗、金币变化）
     {"text": "🚔 打劫途中你被巡逻的警察发现了，不仅没抢到，还被罚了 10 金币！",
-     "stamina_loss": 1, "coin_change": -10},
+     "stamina_loss": 1, "coin_change": -10, "jail": False},
     {"text": "🛡 对方一直躲在安全屋，你根本找不到机会下手，空手而归...",
-     "stamina_loss": 1, "coin_change": 0},
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
     {"text": "🏃 对方是逃跑专家，你刚靠近他就消失得无影无踪！",
-     "stamina_loss": 1, "coin_change": 0},
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
     {"text": "⚔️ 你试图动手，但对方反手制服了你，还抢走了你 8 金币！",
-     "stamina_loss": 1, "coin_change": -8},
+     "stamina_loss": 1, "coin_change": -8, "jail": False},
     {"text": "🌧️ 外面下起大雨，行动不便，你只好放弃这次打劫...",
-     "stamina_loss": 1, "coin_change": 0},
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
     {"text": "🤖 你刚要动手，对方保镖突然出现，你只能灰溜溜地走了。",
-     "stamina_loss": 1, "coin_change": 0},
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
     {"text": "🍀 虽然没抢到，但你在地上捡到了别人掉落的 1 金币！算是安慰奖吧！",
-     "stamina_loss": 1, "coin_change": 1},
+     "stamina_loss": 1, "coin_change": 1, "jail": False},
 ]
