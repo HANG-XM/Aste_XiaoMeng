@@ -3,6 +3,7 @@ import time
 import random
 import re
 from decimal import Decimal, ROUND_HALF_UP  # 引入 Decimal 类型
+from random import Random
 from typing import Dict, Any, List, Tuple
 from collections import defaultdict
 import datetime
@@ -2616,15 +2617,56 @@ def post_bail(account:str, user_name:str,msg:str, path):
     return f"{user_name} 保释成功！你支付了 {constants.BAIL_FEE} 金币～"
 
 def prison_break(account:str, user_name:str, path):
-    rob_manager = IniFileReader(
-        project_root=path,
-        subdir_name="City/Record",
-        file_relative_path="Rob.data",
-        encoding="utf-8",
-    )
-    rob_time = rob_manager.read_key(section=account, key="jail_time")
+    """
+    处理用户越狱操作：
+    1. 读取当前监禁时间和用户体力
+    2. 校验是否可越狱（未监禁/体力足够）
+    3. 扣除体力并尝试越狱（随机成功率）
+    4. 更新监禁时间或回滚体力（事务性）
+
+    Args:
+        user_account: 用户账号（用于配置文件分区）
+        user_name: 用户昵称（用于返回提示）
+        project_path: 项目根路径（配置文件所在目录）
+
+    Returns:
+        操作结果提示（成功/失败/错误信息）
+    """
+    try:
+        rob_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Record",
+            file_relative_path="Rob.data",
+            encoding="utf-8",
+        )
+        rob_time = rob_manager.read_key(section=account, key="jail_time")
+    except Exception as e:
+        logger.error(f"读取打劫数据错误：{str(e)}")
+        return "系统繁忙！请稍后重试！"
+
     if rob_time == 0:
-        return "当前你未在监狱里面！无需越狱！"
+        return f"{user_name} 当前你未在监狱里面！无需越狱！"
+    try:
+        user_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Personal",
+            file_relative_path="Briefly.info",
+            encoding="utf-8",
+        )
+        user_stamina = user_manager.read_key(section=account, key="stamina")
+    except Exception as e:
+        logger.error(f"读取打劫数据错误：{str(e)}")
+        return "系统繁忙！请稍后重试！"
+
+    if user_stamina < constants.PRISON_BREAK_STAMINA:
+        return f"{user_name} 体力不足，无法越狱！"
+    new_stamina = user_stamina - constants.PRISON_BREAK_STAMINA
+    user_manager.update_key(section=account, key="stamina", value=new_stamina)
+    user_manager.save(encoding="utf-8")
+    if Random.randint(1,100) <= constants.PRISON_BREAK_SUCCESS_RATE:
+        rob_manager.update_key(section=account, key="jail_time", value=0)
+        return f"{user_name} 越狱成功！"
+    return f"{user_name} 越狱失败！"
 
 def fish_menu():
     return (
@@ -2635,7 +2677,6 @@ def fish_menu():
         "▸ 查看鱼篓（检查战利品）\n"
         "▸ 钓鱼图鉴（了解鱼的信息）"
     )
-
 
 if __name__ == "__main__":
     pass

@@ -97,9 +97,11 @@ SECONDS_PER_YEAR = Decimal('31104000')              # 一年的总秒数（360�
 TRANSFER_PROCESSING_FEE_RATE = 0.05                 # 转账手续费率（5%，即转账金额的5%作为手续费）
 
 ROB_SUCCESS_RATE = 50                  # 打劫基础成功率（50%）
+PRISON_BREAK_SUCCESS_RATE = 50         # 越狱基础成功率（50%）
 JAIL_TIME = 60                         # 打劫失败入狱时长（单位：秒）
 BAIL_FEE = 200                         # 保释费用
 RELEASED_STAMINA = 2                   # 出狱消耗体力
+PRISON_BREAK_STAMINA = 3               # 越狱消耗体力
 ROB_STAMINA = 2                        # 打劫消耗体力
 ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（含文案、体力消耗、金币变化）
     {"text": "🚔 打劫途中你被巡逻的警察发现了，不仅没抢到，还被罚了 10 金币！",
