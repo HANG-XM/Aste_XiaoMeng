@@ -355,6 +355,7 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
             "work_count": 0,
             "overtime_count": 0
         })
+        work_data = work_manager.read_section(account, create_if_not_exists=True) or {}
         work_time = 0
     else:
         work_time = work_data.get("work_time", 0)
