@@ -2700,6 +2700,16 @@ def post_bail(account:str, user_name:str,msg:str, path):
     rob_manager.save(encoding="utf-8")
     return f"{user_name} 保释成功！你支付了 {constants.BAIL_FEE} 金币～"
 
+def fish_menu():
+    return (
+        "🌊 您现在在湖边钓鱼～\n"
+        "当前可选择操作：\n"
+        "▸ 抛竿（试试今天的手气！）\n"
+        "▸ 提竿（看看钓到了什么～）\n"
+        "▸ 查看鱼篓（检查战利品）\n"
+        "▸ 钓鱼图鉴（了解鱼的信息）"
+    )
+
 def prison_break(account:str, user_name:str, path):
     pass
 

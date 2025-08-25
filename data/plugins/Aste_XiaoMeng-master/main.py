@@ -119,9 +119,10 @@ class XIAOMENG(Star):
             "使用": lambda: city.use(user_account, user_name,msg,self.directory),
             "打劫菜单": lambda: city.rob_menu(),
             "打劫": lambda: city.rob(user_account,user_name,msg,self.directory),
-            "保释": lambda: city.post_bail(user_account,user_name,self.directory),
+            "保释": lambda: city.post_bail(user_account,user_name,msg,self.directory),
             "越狱": lambda: city.prison_break(user_account,user_name,self.directory),
             "出狱": lambda: city.released(user_account,user_name,self.directory),
+            "钓鱼菜单":lambda :city.fish_menu(),
         }
 
         # 查找匹配的处理函数
