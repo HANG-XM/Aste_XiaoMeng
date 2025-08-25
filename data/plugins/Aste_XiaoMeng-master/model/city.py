@@ -230,10 +230,10 @@ def bind(account: str, user_name: str, msg: str, path) ->str:
     # 提取并验证游戏ID格式（示例：6位数字）
     parts = msg.split(maxsplit=1)
     if len(parts) < 2:
-        return "❌ 绑定失败：请提供有效游戏ID（如：绑定 123456）"
+        return f"{constants.ERROR_PREFIX} 请提供有效游戏ID（如：绑定 123456）"
     game_id = parts[1].strip()
     if not game_id.isdigit() or len(game_id) > 9:
-        return "❌ 绑定失败：游戏ID需为纯数字且是正确的游戏ID"
+        return f"{constants.ERROR_PREFIX} 游戏ID需为纯数字且是正确的游戏ID"
 
     # -------------------- 初始化游戏管理器 --------------------
     try:
@@ -251,7 +251,7 @@ def bind(account: str, user_name: str, msg: str, path) ->str:
         game_data = game_manager.read_section(account, create_if_not_exists=True)
         current_bound_id = game_data.get("game_id", 0)
         if current_bound_id != 0:
-            return f"❌ 您已绑定游戏ID：{current_bound_id}\n如需更换，请先联系群主解绑！"
+            return f"{constants.ERROR_PREFIX} 您已绑定游戏ID：{current_bound_id}\n如需更换，请先联系群主解绑！"
     except Exception as e:
         logger.error(f"读取用户游戏数据失败（用户[{account}]）: {str(e)}")
         return "❌ 系统繁忙，请稍后重试！"
@@ -264,7 +264,7 @@ def bind(account: str, user_name: str, msg: str, path) ->str:
             if user_acc == account:
                 continue  # 跳过当前用户
             if user_data.get("game_id") == game_id:
-                return f"❌ 绑定失败：游戏ID {game_id} 已被账号 {user_acc} 绑定！"
+                return f"{constants.ERROR_PREFIX} 绑定失败：游戏ID {game_id} 已被账号 {user_acc} 绑定！"
     except Exception as e:
         logger.error(f"查询游戏ID绑定状态失败（游戏ID[{game_id}]）: {str(e)}")
         return "❌ 系统繁忙，请稍后重试！"
@@ -273,7 +273,7 @@ def bind(account: str, user_name: str, msg: str, path) ->str:
     try:
         game_manager.update_key(section=account, key="game_id", value=game_id)
         game_manager.save()
-        return f"✅ 绑定成功！您的游戏ID已绑定为：{game_id}"
+        return f"{constants.SUCCESS_PREFIX} 您的游戏ID已绑定为：{game_id}"
     except Exception as e:
         logger.error(f"保存绑定数据失败（用户[{account}]，游戏ID[{game_id}]）: {str(e)}")
         return "❌ 绑定成功但数据保存失败，请联系管理员！"
@@ -294,42 +294,6 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
     "submit_date": 1970-01-01,
     "submit_count": 0
     """
-    # 随机文本库
-    no_job_texts = [
-        lambda jobname: f"{user_name} 现在还没有绑定任何工作哦～快发送[找工作]，看看{jobname if jobname else '附近'}有哪些适合的岗位在招人吧！",
-        lambda jobname: f"嘿{user_name}，当前工位空着呢～输入[找工作]，说不定能刷到和你匹配的{jobname if jobname else '高薪'}工作！",
-        lambda jobname: f"{user_name} 的打工档案还是空的？别犹豫，发送[找工作]开启你的第一份虚拟职业体验，{jobname if jobname else '比如程序员、设计师'}都很缺人哦～",
-        lambda jobname: f"检测到{user_name}还未入职～是不是还在挑工作？发送[找工作]，{jobname if jobname else '热门'}岗位列表已为你准备好！"
-    ]
-    # 工作异常状态（job_data不存在）
-    error_texts = [
-        f"{user_name} 检测到工作信息异常～可能是之前的工作已被撤销！系统已重置记录，快发送[找工作]找新机会吧～",
-        f"{user_name} 哎呀，工作数据好像丢失了～别慌，已自动清空旧记录，重新[找工作]就能恢复打工状态啦～",
-        f"注意！{user_name}的工作记录异常（可能是系统错误）～已帮你重置，发送[找工作]获取最新岗位列表吧～"
-    ]
-    # 跨天重置提示（工作日期变更）
-    date_reset_texts = [
-        lambda jobname: f"{user_name} 检测到跨天啦！今日{jobname}打工数据已清零，现在开始新的打工周期～加油冲业绩！",
-        lambda jobname: f"新的一天开始咯{user_name}～{jobname}的打工计时器已重置，今天也要努力搬砖，争取多赚几波工资～",
-        lambda jobname: f"{user_name} 注意！{jobname}的工作日期已切换到今天～之前的进度已保存，现在重新开始计时，冲鸭～",
-        lambda jobname: f"叮～{user_name}，系统检测到时间跨天，{jobname}的当日打工数据已重置，现在开始新的挑战吧！"
-    ]
-    # 未开始工作状态（首次）
-    start_work_texts = [
-        lambda jobname: f"🎉 {user_name} 成功入职{jobname}！时钟开始转动，专注1小时就能领取今日工资啦～加油冲！",
-        lambda jobname: f"叮咚～{user_name}的{jobname}工作签到成功！现在开始工作，1小时后工资自动到账～",
-        lambda jobname: f"欢迎{user_name}加入{jobname}团队！工作倒计时启动，坚持1小时，工资马上到账～",
-        lambda jobname: f"{user_name} 已选择{jobname}作为今日工作～倒计时开始，1小时后就能收获劳动成果啦！",
-        lambda jobname: f"{user_name} 现在开始工作～再坚持1小时，就能解锁[加班]模式，多赚一份工资！",
-        lambda jobname: f"不错哦{user_name}！{jobname}的第一次打工开始～距离[加班]资格只差1次，冲就完事了～"
-    ]
-    # 可领取工资状态（工作完成）
-    reward_ready_texts = [
-        lambda jobname: f"⏰ {user_name} 的{jobname}工作时间已满！点击[领工资]，辛苦1小时的报酬马上到账～",
-        lambda jobname: f"完工！{user_name} 专注工作1小时，{jobname}的工资已备好，发送[领工资]就能领取啦～",
-        lambda jobname: f"时间到～{user_name} 的{jobname}打工任务圆满完成！[领工资]按钮已点亮，速来查收工资～",
-        lambda jobname: f"{user_name} 坚持了1小时{jobname}工作！系统检测到任务完成，现在发送[领工资]就能收获报酬啦～"
-    ]
     # 需加班状态（次数超限）
     overtime_prompt_texts = [
         lambda jobname: f"{user_name} 今日{jobname}打工次数已达上限～想继续赚钱？发送[加班]，开启额外工作模式吧～",
@@ -337,32 +301,23 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
         lambda jobname: f"{user_name} 今天的{jobname}打工次数用完啦～要挑战[加班]模式，再赚一波吗？多劳多得哦～",
         lambda jobname: f"叮～{user_name}，{jobname}今日打工次数已达上限～发送[加班]，解锁隐藏的「加班工资」吧～"
     ]
-    # 工作中剩余时间提示（动态计算）
-    working_texts = [
-        lambda
-            minutes_remaining: f"{user_name} 正在{job_name}岗位上专注工作～再坚持{minutes_remaining}分钟，就能下班领工资啦！加油！",
-        lambda
-            minutes_remaining: f"加油{user_name}！{job_name}的工作还剩{minutes_remaining}分钟，完成就能收获工资～坚持就是胜利～",
-        lambda
-            minutes_remaining: f"专注{user_name}！{job_name}岗位计时：剩余{minutes_remaining}分钟，工资马上到账～再忍忍哦～",
-        lambda
-            minutes_remaining: f"{user_name} 的{job_name}工作时间进度：还差{minutes_remaining}分钟完成～冲鸭，工资在向你招手！",
-        lambda
-            minutes_remaining: f"嘿{user_name}，{job_name}的工作还剩{minutes_remaining}分钟～坚持住，马上就能领工资喝奶茶啦～"
-    ]
+    try:
+        work_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Record",
+            file_relative_path="Work.data",
+            encoding="utf-8"
+        )
+        work_data = work_manager.read_section(account, create_if_not_exists=True) or {}
+    except Exception as e:
+        logger.error(f"打工读取错误：{str(e)}")
+        return "系统繁忙，请稍后重试"
 
-    work_manager = IniFileReader(
-        project_root=path,
-        subdir_name="City/Record",
-        file_relative_path="Work.data",
-        encoding="utf-8"
-    )
-    work_data = work_manager.read_section(account, create_if_not_exists=True) or {}
     job_id = work_data.get("job_id", 0)
     job_name = work_data.get("job_name")
     if job_id == 0 or job_name == "":
         # 没有工作
-        return random.choice(no_job_texts)(job_name)
+        return random.choice(constants.WORK_NO_JOB_TEXTS)(user_name)
 
     job_data = job_manager.get_job_info(str(job_id))
     if not job_data:
@@ -377,7 +332,8 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
             "overtime_count": 0
                             })
         work_manager.save(encoding="utf-8")
-        return random.choice(error_texts)(job_name)
+        return random.choice(constants.WORK_ERROR_TEXTS)(job_name)
+
     job_stamina = job_data.get("physicalConsumption",0)
 
     user_manager = IniFileReader(
@@ -386,10 +342,7 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
         file_relative_path="Briefly.info",
         encoding="utf-8"
     )
-    user_data = user_manager.read_section(account,True)
-    logger.info(user_data)
-    user_stamina = user_data.get("stamina",0)
-
+    user_stamina = user_manager.read_key(section=account, key="stamina")
     if job_stamina > user_stamina:
         return "体力不足，无法进行[打工]！"
     work_date = datetime.strptime(work_data.get("work_date", "1970-01-01"), "%Y-%m-%d").date()
@@ -408,7 +361,6 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
 
     # 获取现在时间戳
     now_time = time.time()
-
     if work_time == 0:
         if work_data.get("work_count", 0) == 0:
             # 未开始打工
@@ -420,43 +372,25 @@ def work(account,user_name,path,job_manager:JobFileHandler)->str:
             new_stamina = user_stamina - job_stamina
             user_manager.update_key(section=account, key="stamina", value=new_stamina)
             user_manager.save(encoding="utf-8")
-            return random.choice(start_work_texts)(job_name)
+            return random.choice(constants.WORK_START_WORK_TEXTS)(user_name,job_name)
         else:
             # 今日已经打工，无需再次打工
             return random.choice(overtime_prompt_texts)(job_name)
     else:
         if work_time + constants.WORK_DURATION_SECONDS <= now_time:
             # 打工完成！
-            return random.choice(reward_ready_texts)(job_name)
+            return random.choice(constants.WORK_REWARD_READY_TEXTS)(user_name,job_name)
 
         remaining = work_time + constants.WORK_DURATION_SECONDS - now_time
         minutes = math.ceil(remaining / 60)
-        return random.choice(working_texts)(minutes)
+        return random.choice(constants.WORK_WORKING_TEXTS)(user_name,job_name,minutes)
 
 def overwork(account,user_name,path,job_manager:JobFileHandler)->str:
     # ---------------------- 随机提示语库 ----------------------
-    no_job_tips = [
-        f"{user_name}，你还没找到工作呢～发送[找工作]看看岗位，打工赚够金币再考虑加班吧！",
-        f"当前是无业状态哦～{user_name}先发送[找工作]投简历，有工作了才能开启加班模式呀～",
-        f"还没入职呢～{user_name}先去[找工作]选个喜欢岗位，入职后再来体验加班的快乐～"
-    ]
-
-    date_reset_tips = [
-        f"🌞 新的一天开始啦！{user_name}昨天的加班记录已清空，快去[打工]领取今日份工资吧～",
-        f"📅 日期切换成功！{user_name}当前工作日期已重置，今天先去[打工]开始新的奋斗吧～",
-        f"⏰ 时间到啦！{user_name}昨天的工作已结束，今天重新打工1小时就能领工资咯～"
-    ]
-
     not_started_tips = [
-        f"{user_name}，你还没开始加班哦～现在开始工作，1小时后就能领工资啦！",
+        f"{user_name}，你开始加班了哦～现在开始工作，1小时后就能领工资啦！",
         f"🚀 加班倒计时开始！{user_name}点击确认开始工作，1小时后收获今日工资～",
         f"💼 工作已就绪！{user_name}现在开始加班，1小时后即可领取劳动所得～"
-    ]
-
-    can_get_tips = [
-        f"🎉 {user_name}辛苦工作1小时啦！现在可以发送[领工资]领取报酬～",
-        f"✅ 加班完成！{user_name}工作时间达标，工资已准备就绪，发送[领工资]查收～",
-        f"⏳ 1小时到点！{user_name}本次加班结束，点击[领工资]带走你的劳动成果～"
     ]
 
     # ---------------------- 初始化数据管理器 ----------------------
@@ -471,7 +405,7 @@ def overwork(account,user_name,path,job_manager:JobFileHandler)->str:
     job_id = work_data.get("job_id")
     job_name = work_data.get("job_name")
     if not job_id or not str(job_id).strip() or not job_name or not str(job_name).strip():
-        return random.choice(no_job_tips)  # 随机选择无工作提示
+        return random.choice(constants.WORK_NO_JOB_TEXTS)(user_name)
     # ---------------------- 获取当前工作信息 ----------------------
     job_data = job_manager.get_job_info(str(job_id))
     if not job_data:
@@ -486,7 +420,7 @@ def overwork(account,user_name,path,job_manager:JobFileHandler)->str:
             "overtime_count": 0
                             })
         work_manager.save(encoding="utf-8")
-        return random.choice(no_job_tips)
+        return random.choice(constants.WORK_ERROR_TEXTS)(job_name)
     job_stamina = job_data.get("physicalConsumption", 0)
     user_manager = IniFileReader(
         project_root=path,
@@ -501,14 +435,8 @@ def overwork(account,user_name,path,job_manager:JobFileHandler)->str:
 
     work_date = datetime.strptime(work_data.get("work_date", "1970-01-01"), "%Y-%m-%d").date()
     if work_date != datetime.now().date():
-        # clear work_count，work_time，overtime_count
-        work_manager.update_section_keys(account, {
-            "work_date":datetime.now().date().strftime("%Y-%m-%d"),
-            "work_time": 0,
-            "work_count": 0,
-            "overtime_count": 0
-        })
-        return random.choice(date_reset_tips)  # 随机选择日期重置提示
+        # 提示开始打工而不是加班
+        return random.choice(constants.WORK_DATE_RESET_TIPS)(user_name)
 
     # ---------------------- 处理加班逻辑 ----------------------
     overtime_count = work_data.get("overtime_count", 0)
@@ -532,23 +460,11 @@ def overwork(account,user_name,path,job_manager:JobFileHandler)->str:
         # 已开始加班：计算当前状态
         now_time = time.time()
         if work_time + constants.WORK_DURATION_SECONDS <= now_time:
-            return random.choice(can_get_tips)  # 随机选择可领工资提示
+            return random.choice(constants.WORK_REWARD_READY_TEXTS)(user_name,job_name)  # 随机选择可领工资提示
         else:
-            # 正在加班：计算已工作时间
-            elapsed_seconds = now_time - work_time
-            minutes = int(elapsed_seconds // 60)
-            progress = (elapsed_seconds / constants.WORK_DURATION_SECONDS) * 100
-
-            working_tips = [
-                f"{user_name}正在努力加班中...（已坚持 {minutes} 分钟，再坚持 {60 - minutes} 分钟就能领工资啦）",
-                f"💪 {user_name}加油！当前已工作 {minutes} 分钟，距离领工资还差 {60 - minutes} 分钟～",
-                f"⏱️ {user_name}的加班进度：{progress}%（{minutes}分钟/{60}分钟），坚持就是胜利！"
-            ]
-
-            return random.choice(working_tips).format(
-                minutes=minutes,
-                progress=f"{progress:.0f}"  # 取整百分比
-            )
+            remaining = work_time + constants.WORK_DURATION_SECONDS - now_time
+            minutes = math.ceil(remaining / 60)
+            return random.choice(constants.WORK_WORKING_TEXTS)(user_name,job_name,minutes)
 
 def job_hunting(msg: str,job_manager:JobFileHandler) -> str:
     # -------------------- 数据校验与预处理 --------------------
@@ -621,11 +537,6 @@ def job_hunting(msg: str,job_manager:JobFileHandler) -> str:
 
 def job_hopping(account,user_name,path,job_manager:JobFileHandler) -> str:
     # 定义随机提示语库（可根据需求扩展）
-    no_job_tips = [
-        f"{user_name}，你还没加入任何公司哦～发送[找工作]看看有哪些岗位在招人，开启职场第一步吧！",
-        f"打工人的征程还没开始呢～{user_name}快戳[找工作]，投份简历试试，说不定有惊喜！",
-        f"当前处于无业状态呢～{user_name}不妨发送[找工作]，浏览下近期热门岗位，总有一款适合你～"
-    ]
     daily_limit_tips = [
         f"{user_name}，今天已经跳过一次槽啦！职场如战场，稳扎稳打更重要，明天再来尝试吧～",
         f"今日跳槽额度已用完～{user_name}先在新岗位上积累经验，明天再挑战更好的机会！",
@@ -656,7 +567,7 @@ def job_hopping(account,user_name,path,job_manager:JobFileHandler) -> str:
     job_id = work_data.get("job_id")
     job_name = work_data.get("job_name")
     if not job_id or not str(job_id).strip() or not job_name or not str(job_name).strip():
-        return random.choice(no_job_tips)  # 随机选择无工作提示
+        return random.choice(constants.WORK_NO_JOB_TEXTS)(user_name)
 
     # 检测今日跳槽次数
     today_str = datetime.today().strftime("%Y-%m-%d")
@@ -714,22 +625,10 @@ def job_hopping(account,user_name,path,job_manager:JobFileHandler) -> str:
 
 def get_paid(account,user_name,path,job_manager:JobFileHandler) -> str:
     # ---------------------- 随机提示语库 ----------------------
-    no_job_tips = [
-        f"{user_name}，你还没找到工作呢～发送[找工作]看看有哪些岗位在招人，打工赚钱第一步走起！",
-        f"当前是无业状态哦～{user_name}快戳[找工作]，投份简历，马上就能有工资拿啦～",
-        f"打工人的身份还没解锁～{user_name}先发送[找工作]，找到喜欢的工作再领工资吧！"
-    ]
-
     not_started_tips = [
         f"{user_name}，你还没开始工作呢～发送[打工]或[加班]，赶紧去公司搬砖吧！",
         f"工位还空着呢～{user_name}快去[打工]打卡，坐满1小时就能领工资啦～",
         f"今日份的工作还没开始哦～{user_name}发送[打工]，马上进入工作状态～"
-    ]
-
-    error_tips = [
-        f"哎呀，职位信息好像出问题了～{user_name}发送[辞职]刷新下工作信息，再试试领工资～",
-        f"系统检测到异常～{user_name}当前工作信息无效，发送[辞职]重新绑定岗位，就能正常领工资啦～",
-        f"信息同步失败～{user_name}别着急，发送[辞职]解除当前工作，重新找份工作就能领工资咯～"
     ]
     # ---------------------- 初始化数据管理器 ----------------------
     work_manager = IniFileReader(
@@ -742,7 +641,7 @@ def get_paid(account,user_name,path,job_manager:JobFileHandler) -> str:
     work_data = work_manager.read_section(account, create_if_not_exists=True)
     job_id = work_data.get("job_id",0)
     if job_id == 0:
-        return random.choice(no_job_tips)  # 随机选择无工作提示
+        return random.choice(constants.WORK_NO_JOB_TEXTS)(user_name)  # 随机选择无工作提示
     # ---------------------- 检查是否已开始工作 ----------------------
     work_time = work_data.get("work_time", 0)
     if work_time == 0:
@@ -768,9 +667,20 @@ def get_paid(account,user_name,path,job_manager:JobFileHandler) -> str:
         )
     # ---------------------- 获取职位信息（含错误处理） ----------------------
     job_data = job_manager.get_job_info(str(job_id))
-
     if not job_data or "baseSalary" not in job_data:
-        return random.choice(error_tips)  # 随机选择信息错误提示
+        # 工作数据异常
+        work_manager.update_section_keys(account, {
+            "job_id": 0,
+            "job_name": '',
+            "join_date": '1970-01-01',
+            "work_date": '1970-01-01',
+            "work_time": 0,
+            "work_count": 0,
+            "overtime_count": 0
+                            })
+        work_manager.save(encoding="utf-8")
+        return random.choice(constants.WORK_ERROR_TEXTS)  # 随机选择信息错误提示
+
     job_salary = job_data["baseSalary"]
     if job_salary <= 0:
         return "⚠️ 注意：当前岗位无薪资，建议发送[辞职]更换有报酬的工作～"
@@ -826,11 +736,6 @@ def resign(account,user_name,path,job_manager:JobFileHandler) -> str:
         work_manager.update_section_keys(account, initial_data)
 
     # ---------------------- 随机提示语库 ----------------------
-    no_job_tips = [
-        f"{user_name}，你还没找到工作呢～发送[找工作]看看岗位，打工赚够金币再考虑辞职吧！",
-        f"当前是无业状态哦～{user_name}先发送[找工作]投简历，有工作了才能辞职呀～",
-        f"还没入职呢～{user_name}先去[找工作]选个喜欢岗位，入职后再来辞职吧！"
-    ]
 
     invalid_job_tips = [
         f"哎呀，系统检测到当前工作信息异常～{user_name}别担心，辞职后自动清除异常记录！",
@@ -851,7 +756,7 @@ def resign(account,user_name,path,job_manager:JobFileHandler) -> str:
     job_name = work_data.get("job_name")
     # 严格检查工作有效性（排除0、空字符串等情况）
     if not (job_id and str(job_id).strip() and job_name and str(job_name).strip()):
-        random.choice(no_job_tips)  # 随机选择无工作提示
+        return random.choice(constants.WORK_NO_JOB_TEXTS)(user_name)  # 随机选择无工作提示
     # ---------------------- 获取当前工作信息 ----------------------
     job_data = job_manager.get_job_info(str(job_id))
     if not job_data:

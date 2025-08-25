@@ -21,8 +21,62 @@ WORK_DURATION_SECONDS = 3600                       # 单次打工任务的持续
 
 JOB_HUNTING_PAGE_SIZE = 3   # 找工作每页显示数量
 JOBS_POOL_PAGE_SIZE = 10   # 工作池每页显示数量
-
 SUBMIT_RESUME_LIMIT = 5 # 投简历每日上限
+
+# 工作异常状态（job_data不存在）
+WORK_ERROR_TEXTS = [
+    lambda user_name: f"{user_name} 检测到工作信息异常～可能是之前的工作已被撤销！系统已重置记录，快发送[找工作]找新机会吧～",
+    lambda user_name: f"{user_name} 哎呀，工作数据好像丢失了～别慌，已自动清空旧记录，重新[找工作]就能恢复打工状态啦～",
+    lambda user_name: f"注意！{user_name}的工作记录异常（可能是系统错误）～已帮你重置，发送[找工作]获取最新岗位列表吧～"
+]
+WORK_NO_JOB_TEXTS = [
+    lambda user_name:
+    f"{user_name} 现在还没有绑定任何工作哦～快发送[找工作]，看看附近有哪些适合的岗位在招人吧！",
+    lambda user_name:
+    f"嘿{user_name}，当前工位空着呢～输入[找工作]，说不定能刷到和你匹配的高薪工作！",
+    lambda user_name:
+    f"{user_name} 的打工档案还是空的？别犹豫，发送[找工作]开启你的第一份虚拟职业体验，比如程序员、设计师'都很缺人哦～",
+    lambda user_name:
+    f"检测到{user_name}还未入职～是不是还在挑工作？发送[找工作]，'热门'岗位列表已为你准备好！"
+]
+# 开始工作状态
+WORK_START_WORK_TEXTS = [
+    lambda user_name,jobname: f"🎉 {user_name} 成功入职{jobname}！时钟开始转动，专注1小时就能领取今日工资啦～加油冲！",
+    lambda user_name,jobname: f"叮咚～{user_name}的{jobname}工作签到成功！现在开始工作，1小时后工资自动到账～",
+    lambda user_name,jobname: f"欢迎{user_name}加入{jobname}团队！工作倒计时启动，坚持1小时，工资马上到账～",
+    lambda user_name,jobname: f"{user_name} 已选择{jobname}作为今日工作～倒计时开始，1小时后就能收获劳动成果啦！",
+    lambda user_name,jobname: f"不错哦{user_name}！{jobname}的工作开始～就完事了～"
+]
+# 工作中剩余时间提示（动态计算）
+WORK_WORKING_TEXTS = [
+    lambda
+        user_name, job_name, minutes_remaining:
+            f"{user_name} 正在{job_name}岗位上专注工作～再坚持{minutes_remaining}分钟，就能下班领工资啦！加油！",
+    lambda
+        user_name, job_name, minutes_remaining:
+            f"加油{user_name}！{job_name}的工作还剩{minutes_remaining}分钟，完成就能收获工资～坚持就是胜利～",
+    lambda
+        user_name, job_name, minutes_remaining:
+            f"专注{user_name}！{job_name}岗位计时：剩余{minutes_remaining}分钟，工资马上到账～再忍忍哦～",
+    lambda
+        user_name, job_name, minutes_remaining:
+            f"{user_name} 的{job_name}工作时间进度：还差{minutes_remaining}分钟完成～冲鸭，工资在向你招手！",
+    lambda
+        user_name, job_name, minutes_remaining:
+            f"嘿{user_name}，{job_name}的工作还剩{minutes_remaining}分钟～坚持住，马上就能领工资喝奶茶啦～"
+]
+# 可领取工资状态（工作完成）
+WORK_REWARD_READY_TEXTS = [
+    lambda user_name,jobname: f"⏰ {user_name} 的{jobname}工作时间已满！点击[领工资]，辛苦1小时的报酬马上到账～",
+    lambda user_name,jobname: f"完工！{user_name} 专注工作1小时，{jobname}的工资已备好，发送[领工资]就能领取啦～",
+    lambda user_name,jobname: f"时间到～{user_name} 的{jobname}打工任务圆满完成！[领工资]按钮已点亮，速来查收工资～",
+    lambda user_name,jobname: f"{user_name} 坚持了1小时{jobname}工作！系统检测到任务完成，现在发送[领工资]就能收获报酬啦～"
+]
+WORK_DATE_RESET_TIPS = [
+    lambda user_name:f"🌞 新的一天开始啦！{user_name}昨天的工作记录已清空，快去[打工]领取今日份工资吧～",
+    lambda user_name:f"📅 日期切换成功！{user_name}当前工作日期已重置，今天先去[打工]开始新的奋斗吧～",
+    lambda user_name:f"⏰ 时间到啦！{user_name}昨天的工作已结束，今天重新[打工]1小时就能领工资咯～"
+]
 
 # 利率配置（年利率，使用 Decimal 保证精度）
 LOAN_ANNUAL_INTEREST_RATE = Decimal('0.1')          # 贷款年利率（10%）
