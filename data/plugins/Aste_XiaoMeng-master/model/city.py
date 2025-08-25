@@ -2625,9 +2625,9 @@ def prison_break(account:str, user_name:str, path):
     4. 更新监禁时间或回滚体力（事务性）
 
     Args:
-        user_account: 用户账号（用于配置文件分区）
+        account: 用户账号（用于配置文件分区）
         user_name: 用户昵称（用于返回提示）
-        project_path: 项目根路径（配置文件所在目录）
+        path: 项目根路径（配置文件所在目录）
 
     Returns:
         操作结果提示（成功/失败/错误信息）
@@ -2663,7 +2663,7 @@ def prison_break(account:str, user_name:str, path):
     new_stamina = user_stamina - constants.PRISON_BREAK_STAMINA
     user_manager.update_key(section=account, key="stamina", value=new_stamina)
     user_manager.save(encoding="utf-8")
-    if Random.randint(1,100) <= constants.PRISON_BREAK_SUCCESS_RATE:
+    if random.randint(a = 1,b = 100) <= constants.PRISON_BREAK_SUCCESS_RATE:
         rob_manager.update_key(section=account, key="jail_time", value=0)
         return f"{user_name} 越狱成功！"
     return f"{user_name} 越狱失败！"
