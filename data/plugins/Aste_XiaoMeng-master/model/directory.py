@@ -61,17 +61,23 @@ class IniFileReader:
             return {}
         return self._parse_config(self.config)[section]
 
-    def read_key(self, section: str, key: str) -> Any:
+    def read_key(self, section: str, key: str, default: Any = None) -> Any:
         """
-        读取指定节的键值
-        :param section: 节名
-        :param key: 键名
-        :return: 键对应的Python类型值
-        :raises ValueError: 节或键不存在时抛出异常
+        读取指定节的键值（支持默认值）
+
+        :param section: 节名（如 "用户信息"）
+        :param key: 键名（如 "jail_time"）
+        :param default: 键不存在时的默认值（可选，默认为 None）
+        :return: 键对应的Python类型值；若键不存在且无默认值，抛出 ValueError
+        :raises ValueError: 节或键不存在且未提供默认值时抛出异常
         """
         section_data = self.read_section(section)
+        # 检查键是否存在
         if key not in section_data:
+            if default is not None:
+                return default
             raise ValueError(f"节 [{section}] 中无键 '{key}'")
+
         return section_data[key]
 
     def update_key(self, section: str, key: str, value: Any, encoding: Optional[str] = None) -> None:
