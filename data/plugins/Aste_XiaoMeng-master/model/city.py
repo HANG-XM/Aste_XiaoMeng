@@ -2192,7 +2192,7 @@ def purchase(account,user_name,msg,path) -> str:
 
 def basket(account: str, user_name: str, path) -> str:
     """
-    查询用户购物篮信息（优化版，返回更友好的QQ群聊格式）
+    查询用户购物篮信息（优化版，支持多类型物品友好显示）
     :param account: 用户账号
     :param user_name: 用户昵称
     :param path: 项目根路径
@@ -2214,17 +2214,42 @@ def basket(account: str, user_name: str, path) -> str:
     if not basket_data:
         return "你的购物篮空空如也～快去商店逛逛吧！🛍️"
 
-    # 构建友好格式的文本（逐条列举，口语化）
     items_list = []
-    for item, count in basket_data.items():
-        # （数量为0的物品不会显示哦）
-        if count == 0:
-            continue
-        items_list.append(f"· {item}：{count}个")
 
-    # 拼接最终文本（带表情和换行，更生动）
-    result = ["📦 你的购物篮里有这些宝贝：", *items_list, "使用发送：使用 X（X为物品名）"]
-    return "\n".join(result)
+    for item, value in basket_data.items():
+        # 处理钓鱼装备类物品（特殊格式）
+        if item in ["fishing_rod", "fishing_bait"]:
+            # 验证数据格式：应为列表，元素为包含name和endurance的字典
+            if isinstance(value, list):
+                for idx, bait_item in enumerate(value, 1):  # idx用于处理多条鱼饵的情况
+                    if isinstance(bait_item, dict) and "name" in bait_item and "endurance" in bait_item:
+                        # 提取关键信息并格式化（耐久度取整）
+                        bait_name = bait_item["name"].strip()
+                        bait_endurance = int(bait_item.get("endurance", 0))
+                        items_list.append(f"· {bait_name}（耐久：{bait_endurance}）")
+                    else:
+                        logger.warning(f"用户{user_name}的{item}数据格式异常，条目：{bait_item}")
+            else:
+                logger.warning(f"用户{user_name}的{item}数据格式错误，期望列表，实际类型：{type(value)}")
+
+        # 处理普通物品（数值型数量）
+        else:
+            # 兼容多种数值格式（字符串/数字）
+            try:
+                count = int(value)
+                if count > 0:  # 数量大于0才显示
+                    items_list.append(f"· {item}：{count}个")
+            except (ValueError, TypeError):
+                # 非数值类型或无法转换的情况（如"小心心=0"可能存储为字符串"0"）
+                logger.debug(f"用户{user_name}的{item}非数值类型，值：{value}")
+
+    # 最终结果拼接（根据是否有有效物品显示不同内容）
+    if items_list:
+        header = f"📦 {user_name}的购物篮里有这些宝贝："
+        footer = "\n使用提示：发送「使用 X」可查看/使用物品（X为物品名，如「使用 银鱼竿」）"
+        return f"{header}\n" + "\n".join(items_list) + footer
+    else:
+        return "你的购物篮里暂时没有可用物品～快去商店看看吧！🛍️"
 
 def check_goods(account:str, user_name:str, msg:str, path):
     """
