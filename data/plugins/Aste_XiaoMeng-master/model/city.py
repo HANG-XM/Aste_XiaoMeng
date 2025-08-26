@@ -3,16 +3,15 @@ import time
 import random
 import re
 from decimal import Decimal, ROUND_HALF_UP  # 引入 Decimal 类型
-from random import Random
 from typing import Dict, Any, List, Tuple
 from collections import defaultdict
-import datetime
 from datetime import datetime
 import json
 
 from .directory import IniFileReader,JobFileHandler,ShopFileHandler  # 导入专用读取函数
 from .city_func import is_arabic_digit,get_by_qq,preprocess_date_str,calculate_delta_days,get_dynamic_rob_ratio
 from . import constants
+
 from astrbot.api import logger
 
 def xm_main() -> str:
@@ -2437,7 +2436,7 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
     current_robber_gold = robber_data.get("coin", 0)
 
     # 打劫次数控制（每日重置）
-    today = datetime.date.today().isoformat()
+    today = datetime.today().isoformat()
     rob_count_today = robber_rob_data.get("rob_count_today", 0)
     last_rob_date = robber_rob_data.get("last_rob_date", "")
 
@@ -2477,7 +2476,6 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
 
         new_robber_gold = max(0, current_robber_gold + coin_change)
         new_robber_stamina = max(0, current_robber_stamina - stamina_loss)
-
         # 更新用户数据（仅robber）
         user_manager.update_section_keys(section=account, data={
             "coin": new_robber_gold,
@@ -2509,32 +2507,36 @@ def released(account:str, user_name:str, path) -> str:
         rob_manager = IniFileReader(
             project_root=path, subdir_name="City/Record", file_relative_path="Rob.data", encoding="utf-8"
         )
-        # 检测当前入狱状态（可选）
-        current_jail_time = rob_manager.read_key(section=account, key="jail_time",default=0)
-        if current_jail_time <= 0:
-            return f"{user_name} 你未入狱，无需出狱！"
-        # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
-        if current_jail_time + constants.JAIL_TIME > time.time():
-            remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
-            return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
-
-        user_manager = IniFileReader(
-            project_root=path,subdir_name="City/Personal",file_relative_path="Briefly.info",encoding="utf-8"
-        )
-        user_stamina =user_manager.read_key(section=account, key="stamina",default=0)
-        if user_stamina < constants.RELEASED_STAMINA:
-            return f"{user_name} 体力不足，休息一会再出狱吧！"
-        new_stamina = user_stamina - constants.RELEASED_STAMINA
-        user_manager.update_key(section=account, key="stamina", value=new_stamina)
-        user_manager.save(encoding="utf-8")
-        # 清除入狱时间（设置为0表示未入狱）
-        rob_manager.update_key(section=account, key="jail_time", value=0)
-        rob_manager.save(encoding="utf-8")
-        # 可选：同步其他状态（如体力、金币）
-        return f"用户 {user_name} 已成功出狱！"
     except Exception as e:
         logger.error(f"释放用户 {account} 失败: {e}")
         return "出狱过程中发生错误，请联系管理员。"
+    # 检测当前入狱状态（可选）
+    current_jail_time = rob_manager.read_key(section=account, key="jail_time", default=0)
+    if current_jail_time <= 0:
+        return f"{user_name} 你未入狱，无需出狱！"
+    # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
+    if current_jail_time + constants.JAIL_TIME > time.time():
+        remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
+        return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
+    try:
+        user_manager = IniFileReader(
+            project_root=path, subdir_name="City/Personal", file_relative_path="Briefly.info", encoding="utf-8"
+        )
+    except Exception as e:
+        logger.error(f"释放用户 {account} 失败: {e}")
+        return "出狱过程中发生错误，请联系管理员。"
+
+    user_stamina = user_manager.read_key(section=account, key="stamina", default=0)
+    if user_stamina < constants.RELEASED_STAMINA:
+        return f"{user_name} 体力不足，休息一会再出狱吧！"
+    new_stamina = user_stamina - constants.RELEASED_STAMINA
+    user_manager.update_key(section=account, key="stamina", value=new_stamina)
+    user_manager.save(encoding="utf-8")
+    # 清除入狱时间（设置为0表示未入狱）
+    rob_manager.update_key(section=account, key="jail_time", value=0)
+    rob_manager.save(encoding="utf-8")
+    # 可选：同步其他状态（如体力、金币）
+    return f"用户 {user_name} 已成功出狱！"
 
 def post_bail(account:str, user_name:str,msg:str, path):
     """处理玩家保释请求"""
@@ -2648,32 +2650,37 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
         rob_manager = IniFileReader(
             project_root=path, subdir_name="City/Record", file_relative_path="Rob.data", encoding="utf-8"
         )
-        # 检测当前入狱状态（可选）
-        current_jail_time = rob_manager.read_key(section=account, key="jail_time",default=0)
-        if current_jail_time <= 0:
-            return f"{user_name} 你未入狱，无需出狱！"
-        # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
-        if current_jail_time + constants.JAIL_TIME > time.time():
-            remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
-            return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
-
-        user_manager = IniFileReader(
-            project_root=path,subdir_name="City/Personal",file_relative_path="Briefly.info",encoding="utf-8"
-        )
-        user_stamina =user_manager.read_key(section=account, key="stamina",default=0)
-        if user_stamina < constants.RELEASED_STAMINA:
-            return f"{user_name} 体力不足，休息一会再出狱吧！"
-        new_stamina = user_stamina - constants.RELEASED_STAMINA
-        user_manager.update_key(section=account, key="stamina", value=new_stamina)
-        user_manager.save(encoding="utf-8")
-        # 清除入狱时间（设置为0表示未入狱）
-        rob_manager.update_key(section=account, key="jail_time", value=0)
-        rob_manager.save(encoding="utf-8")
-        # 可选：同步其他状态（如体力、金币）
-        return f"用户 {user_name} 已成功出狱！"
     except Exception as e:
         logger.error(f"释放用户 {account} 失败: {e}")
         return "出狱过程中发生错误，请联系管理员。"
+    # 检测当前入狱状态（可选）
+    current_jail_time = rob_manager.read_key(section=account, key="jail_time",default=0)
+    if current_jail_time <= 0:
+        return f"{user_name} 你未入狱，无需出狱！"
+    # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
+    if current_jail_time + constants.JAIL_TIME > time.time():
+        remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
+        return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
+    try:
+        user_manager = IniFileReader(
+            project_root=path, subdir_name="City/Personal", file_relative_path="Briefly.info", encoding="utf-8"
+        )
+    except Exception as e:
+        logger.error(f"释放用户 {account} 失败: {e}")
+        return "出狱过程中发生错误，请联系管理员。"
+
+    user_stamina =user_manager.read_key(section=account, key="stamina",default=0)
+    if user_stamina < constants.RELEASED_STAMINA:
+        return f"{user_name} 体力不足，休息一会再出狱吧！"
+    new_stamina = user_stamina - constants.RELEASED_STAMINA
+    user_manager.update_key(section=account, key="stamina", value=new_stamina)
+    user_manager.save(encoding="utf-8")
+    # 清除入狱时间（设置为0表示未入狱）
+    rob_manager.update_key(section=account, key="jail_time", value=0)
+    rob_manager.save(encoding="utf-8")
+    # 可选：同步其他状态（如体力、金币）
+    return f"用户 {user_name} 已成功出狱！"
+
     pass
 def lift_rod(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""
