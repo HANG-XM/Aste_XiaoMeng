@@ -50,6 +50,12 @@ class XIAOMENG(Star):
                 file_relative_path="Job.res",
                 encoding="utf-8"
             )
+            self.fish_manager = directory.FishFileHandler(
+                project_root=self.directory ,
+                subdir_name="City/Set_up",
+                file_relative_path="Fish.res",
+                encoding="utf-8"
+            )
         except Exception as e:
             logger.error(f"插件数据初始化失败（关键错误）: {str(e)}", exc_info=True)  # 记录完整异常栈
             raise RuntimeError("插件数据初始化失败，请检查目录配置或当前工作目录") from e  # 友好提示
@@ -124,6 +130,7 @@ class XIAOMENG(Star):
             "出狱": lambda: city.released(user_account,user_name,self.directory),
             "钓鱼菜单":lambda :city.fish_menu(),
             "钓鱼":lambda: city.cast_fishing_rod(user_account,user_name,self.directory),
+            "提竿":lambda :city.lift_rod(user_account,user_name,self.directory,self.fish_manager),
         }
 
         # 查找匹配的处理函数
