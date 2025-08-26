@@ -3,6 +3,7 @@ import configparser
 import math
 from pathlib import Path
 from difflib import get_close_matches
+import random
 from typing import Dict, List, Optional, Any, Tuple
 import os
 import tempfile
@@ -918,3 +919,20 @@ class FishFileHandler:
         :return: 匹配鱼字典，若未找到返回None
         """
         return self.data.get(item_name)
+
+    def get_random_fish_by_bait(self, bait: str) -> Optional[Dict[str, Any]]:
+        """
+        根据指定鱼饵随机返回一条匹配的鱼信息
+
+        :param bait: 鱼饵名称（如"蚯蚓"、"活虾"）
+        :return: 匹配的鱼信息字典，若无匹配项返回None
+        """
+        matching_fishes = []
+        for fish_name, fish_info in self.data.items():
+            if bait in fish_info.get("bait", []):
+                matching_fishes.append(fish_info)
+
+        if not matching_fishes:
+            return None
+
+        return random.choice(matching_fishes)
