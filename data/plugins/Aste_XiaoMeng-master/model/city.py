@@ -2127,39 +2127,14 @@ def purchase(account,user_name,msg,path) -> str:
         )
         files_to_save.append(("Basket.info", basket_manager))
         basket_data = basket_manager.read_section(section=account, create_if_not_exists=True) or {}
-        if goods_category in ("exp", "stamina","gift"):
+        if goods_category in ("exp", "stamina","gift","fishing_bait"):
             basket_manager.update_key(section=account, key=goods_name, value=basket_data.get(goods_name, 0) + 1)
-        elif goods_category in ("fishing_rod", "fishing_bait"):
-            # 解析鱼竿列表（格式示例：{"Rod_List": [{"name": "木鱼竿", "endurance": 100}, ...]}）（从 JSON 字符串反序列化为列表）
-            def _check_list(data):
-                try:
-                    shop_list = json.loads(data)
-                except json.JSONDecodeError:
-                    shop_list = []
-                    logger.warning(f"用户[{account}]背包数据格式错误，已重置为空列表")
-                return shop_list
-            if goods_category == "fishing_rod":
-                rod_list = _check_list(basket_data.get("Rod_List", "[]"))
-                # 检查用户是否已拥有该鱼竿（精确匹配名称）
-                existing_rod = next((rod for rod in rod_list if rod.get("name") == goods_name), None)
-                if existing_rod:
-                    return f"您已拥有鱼竿「{goods_name}」！若需更换耐久，请使用[修复 {goods_name}]功能"
-                # 未拥有该鱼竿：添加新鱼竿（初始耐久100）
-                new_rod = {"name": goods_name, "endurance": 100}
-                rod_list.append(new_rod)
-                # 序列化为 JSON 字符串后存入 INI
-                basket_manager.update_key(section=account, key="Rod_List", value=json.dumps(rod_list, ensure_ascii=False))
-            if goods_category == "fishing_bait":
-                bait_list = _check_list(basket_data.get("Bait_List", "[]"))
-                # 检查是否已拥有该鱼饵
-                existing_bait = next((bait for bait in bait_list if bait.get("name") == goods_name), None)
-                if existing_bait:
-                    existing_bait["num"] = existing_bait.get("num", 0) + 1  # 已拥有：数量 +1
-                else:
-                    new_bait = {"name": goods_name, "num": 1}  # 新增鱼饵（初始数量 1）
-                    bait_list.append(new_bait)
-                # 序列化为 JSON 字符串后存入 INI
-                basket_manager.update_key(section=account, key="Bait_List", value=json.dumps(bait_list, ensure_ascii=False))
+
+        elif goods_category == "fishing_rod":
+            if goods_name in basket_data:
+                return f"您已拥有鱼竿「{goods_name}」！若需更换耐久，请使用[修复 {goods_name}]功能"
+            basket_manager.update_key(section=account, key=goods_name,value=100)
+
     elif goods_category in ("game",):
         game_manager = IniFileReader(
             project_root=path,
@@ -2218,20 +2193,9 @@ def basket(account: str, user_name: str, path) -> str:
 
     for item, value in basket_data.items():
         # 处理钓鱼装备类物品（特殊格式）
-        if item in ["fishing_rod", "fishing_bait"]:
+        if item in ["fishing_rod"]:
             # 验证数据格式：应为列表，元素为包含name和endurance的字典
-            if isinstance(value, list):
-                for idx, bait_item in enumerate(value, 1):  # idx用于处理多条鱼饵的情况
-                    if isinstance(bait_item, dict) and "name" in bait_item and "endurance" in bait_item:
-                        # 提取关键信息并格式化（耐久度取整）
-                        bait_name = bait_item["name"].strip()
-                        bait_endurance = int(bait_item.get("endurance", 0))
-                        items_list.append(f"· {bait_name}（耐久：{bait_endurance}）")
-                    else:
-                        logger.warning(f"用户{user_name}的{item}数据格式异常，条目：{bait_item}")
-            else:
-                logger.warning(f"用户{user_name}的{item}数据格式错误，期望列表，实际类型：{type(value)}")
-
+            items_list.append(f"· {item}：{value}耐久")
         # 处理普通物品（数值型数量）
         else:
             # 兼容多种数值格式（字符串/数字）
@@ -2404,6 +2368,25 @@ def use(account,user_name,msg,path) -> str:
         user_manager.save(encoding="utf-8")
         basket_manager.save(encoding="utf-8")
         return f"{user_name} 成功使用 {good_name}！"
+    elif good_category in ("fishing_rod", "fishing_bait"):
+        try:
+            fish_manager = IniFileReader(
+                project_root=path,
+                subdir_name="City/Record",
+                file_relative_path="Fish.data",
+                encoding="utf-8",
+            )
+            fish_data = fish_manager.read_section(section=account, create_if_not_exists=True)
+        except Exception as e:
+            logger.error(f"初始化用于钓鱼系统数据错误：{str(e)}")
+            return "系统繁忙，请稍后重试"
+
+        if good_category == "fishing_rod":
+            fish_manager.update_key(section=account,key="current_rod",value=good_name)
+        elif good_category == "fishing_bait":
+            fish_manager.update_key(section=account, key="current_bait", value=good_name)
+        fish_manager.save(encoding="utf-8")
+        return "使用成功！"
     return "意外的商品！无法使用！"
 
 def rob_menu() -> str:
