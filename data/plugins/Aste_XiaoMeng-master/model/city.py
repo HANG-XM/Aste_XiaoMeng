@@ -2080,15 +2080,17 @@ def purchase(account,user_name,msg,path) -> str:
         similar_goods = shop_handler.get_similar_items(item_name=goods_name,similarity_threshold=0.5,top_n_name=3)
         hint = f"未找到商品「{goods_name}」"
         if similar_goods:
-            hint += f"，猜你想要：{'、n'.join(similar_goods[0])}？"
+            hint += f"，猜你想要：{'、'.join(similar_goods[0])}？"
         hint += "\n发送[小梦商店]查看所有商品"
         return hint
+
     goods_data = shop_handler.data[goods_name]
     goods_category = goods_data.get("category")
     goods_price = goods_data.get("price", 0)
     goods_quantity = goods_data.get("quantity",0)
     goods_available = goods_data.get("available", False)
-    # 校验商品状态
+
+    # 商品状态校验（提前终止无效流程）
     if not goods_available:
         return f"该商品{goods_name}暂不可售，请留意商店公告！"
     if goods_price < 1:
@@ -2112,101 +2114,67 @@ def purchase(account,user_name,msg,path) -> str:
     if user_gold < goods_price:
         return f"金币不足（当前{user_gold}，需要{goods_price}），无法购买「{goods_name}」"
 
-    # -------------------- 核心修改：预扣减商店库存（无回滚） --------------------
-    try:
-        # 扣减库存（原子操作，避免并发超卖）
-        new_quantity = goods_quantity - 1
-        shop_handler.update_data(
-            key=f"{goods_name}.quantity",
-            value=new_quantity,
-            validate=True  # 启用数据验证（检查数量是否合法）
-        )
-    except ValueError as e:
-        return f"购买失败：{str(e)}"
-    except Exception as e:
-        logger.error(f"预扣减库存失败（用户[{account}]，商品[{goods_name}]）: {str(e)}")
-        return "购买失败，请稍后重试！"
-
-
     # -------------------- 事务准备 --------------------
-    update_fields = {"coin": user_gold - goods_price}
     files_to_save: List[tuple[str, IniFileReader]] = [
         ("Briefly.res", user_manager),  # 用户金币数据
         ("Shop.res", shop_handler)  # 商店库存数据
     ]
-    try:
-        # 储存背包的数据
+
+    if goods_category in ("exp", "stamina","gift","fishing_rod", "fishing_bait"):
+        basket_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Personal",
+            file_relative_path="Basket.info",
+        )
+        files_to_save.append(("Basket.info", basket_manager))
+        basket_data = basket_manager.read_section(section=account, create_if_not_exists=True) or {}
         if goods_category in ("exp", "stamina","gift"):
-            basket_manager = IniFileReader(
-                project_root=path,
-                subdir_name="City/Personal",
-                file_relative_path="Basket.info",
-            )
-            files_to_save.append(("Basket.info", basket_manager))
-            basket_data = basket_manager.read_section(section=account, create_if_not_exists=True) or {}
             basket_manager.update_key(section=account, key=goods_name, value=basket_data.get(goods_name, 0) + 1)
-        elif goods_category in ("game",):
-            game_manager = IniFileReader(
-                project_root=path,
-                subdir_name="City/Personal",
-                file_relative_path="Game.info",
-            )
-            game_data = game_manager.read_section(section=account, create_if_not_exists=True) or {}
-            if game_data.get("game_id",0) == 0:
-                return "当前未绑定逃跑吧少年手游账号！发送'绑定 游戏ID'可以进行绑定"
-            files_to_save.append(("Game.info", game_manager))
-            game_manager.update_key(section=account, key=goods_name, value=game_data.get(goods_name, 0) + 1)
         elif goods_category in ("fishing_rod", "fishing_bait"):
-            fish_manager = IniFileReader(
-                project_root=path,
-                subdir_name="City/Record",
-                file_relative_path="Fish.data",
-            )
-            files_to_save.append(("Fish.data", fish_manager))
-            fish_data = fish_manager.read_section(section=account, create_if_not_exists=True) or {}
-            # 根据类别处理
-            if goods_category == "fishing_rod":
-                # 解析鱼竿列表（格式示例：{"Rod_List": [{"name": "木鱼竿", "endurance": 100}, ...]}）（从 JSON 字符串反序列化为列表）
-                rod_list_str = fish_data.get("Rod_List", "[]")  # 默认空列表的 JSON 字符串
+            # 解析鱼竿列表（格式示例：{"Rod_List": [{"name": "木鱼竿", "endurance": 100}, ...]}）（从 JSON 字符串反序列化为列表）
+            def _check_list(data):
                 try:
-                    rod_list = json.loads(rod_list_str)
+                    shop_list = json.loads(data)
                 except json.JSONDecodeError:
-                    rod_list = []
-                    logger.warning(f"用户[{account}]鱼竿数据格式错误，已重置为空列表")
+                    shop_list = []
+                    logger.warning(f"用户[{account}]背包数据格式错误，已重置为空列表")
+                return shop_list
+            if goods_category == "fishing_rod":
+                rod_list = _check_list(basket_data.get("Rod_List", "[]"))
                 # 检查用户是否已拥有该鱼竿（精确匹配名称）
                 existing_rod = next((rod for rod in rod_list if rod.get("name") == goods_name), None)
                 if existing_rod:
                     return f"您已拥有鱼竿「{goods_name}」！若需更换耐久，请使用[修复 {goods_name}]功能"
                 # 未拥有该鱼竿：添加新鱼竿（初始耐久100）
-                new_rod = {"name": goods_name,"endurance": 100}
+                new_rod = {"name": goods_name, "endurance": 100}
                 rod_list.append(new_rod)
                 # 序列化为 JSON 字符串后存入 INI
-                fish_manager.update_key(section=account, key="Rod_List", value=json.dumps(rod_list))
+                basket_manager.update_key(section=account, key="Rod_List", value=json.dumps(rod_list))
             if goods_category == "fishing_bait":
-                # 解析鱼饵列表（从 JSON 字符串反序列化为列表）
-                bait_list_str = fish_data.get("Bait_List", "[]")
-                try:
-                    bait_list = json.loads(bait_list_str)
-                except json.JSONDecodeError:
-                    bait_list = []
-                    logger.warning(f"用户[{account}]鱼饵数据格式错误，已重置为空列表")
-
+                bait_list = _check_list(basket_data.get("Bait_List", "[]"))
                 # 检查是否已拥有该鱼饵
                 existing_bait = next((bait for bait in bait_list if bait.get("name") == goods_name), None)
                 if existing_bait:
-                    existing_bait["num"] = existing_bait.get("num", 0) + 1# 已拥有：数量 +1
+                    existing_bait["num"] = existing_bait.get("num", 0) + 1  # 已拥有：数量 +1
                 else:
-                    new_bait = {"name": goods_name,"num": 1}# 新增鱼饵（初始数量 1）
+                    new_bait = {"name": goods_name, "num": 1}  # 新增鱼饵（初始数量 1）
                     bait_list.append(new_bait)
                 # 序列化为 JSON 字符串后存入 INI
-                fish_manager.update_key(section=account, key="Bait_List", value=json.dumps(bait_list))
-        # -------------------- 执行主数据更新 --------------------
-        for field, value in update_fields.items():
-            user_manager.update_key(section=account, key=field, value=value)
-    except Exception as e:
-        logger.error(f"更新用户[{account}]数据失败: {str(e)}")
-        return "购买过程中发生异常，请稍后重试！"
-
+                basket_manager.update_key(section=account, key="Bait_List", value=json.dumps(bait_list))
+    elif goods_category in ("game",):
+        game_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Personal",
+            file_relative_path="Game.info",
+        )
+        game_data = game_manager.read_section(section=account, create_if_not_exists=True) or {}
+        if game_data.get("game_id",0) == 0:
+            return "当前未绑定逃跑吧少年手游账号！发送'绑定 游戏ID'可以进行绑定"
+        files_to_save.append(("Game.info", game_manager))
+        game_manager.update_key(section=account, key=goods_name, value=game_data.get(goods_name, 0) + 1)
+    # -------------------- 扣减 --------------------
+    shop_handler.update_data(key=goods_name + ".quantity", value=goods_quantity - 1)
+    user_manager.update_key(section=account, key="coin", value=user_gold - goods_price)
     # -------------------- 提交所有修改 --------------------
     try:
         for file_name, manager in files_to_save:
@@ -2221,8 +2189,8 @@ def purchase(account,user_name,msg,path) -> str:
         "gift": f"购买成功！该{goods_name}已经放入[背包]",
         "exp": f"购买成功！该{goods_name}已经放入[背包]",
         "stamina": f"购买成功！该{goods_name}已经放入[背包]",
-        "fishing_rod": f"购买成功！新鱼竿「{goods_name}」已加入，初始耐久100",
-        "fishing_bait": f"购买成功！新鱼饵「{goods_name}」已放入～",
+        "fishing_rod":  f"购买成功！该{goods_name}已经放入[背包]",
+        "fishing_bait":  f"购买成功！该{goods_name}已经放入[背包]",
         "game": f"购买成功！该商品{user_name}为群主礼物赠送，时间不固定！"
     }.get(goods_category, "购买成功！")
 
