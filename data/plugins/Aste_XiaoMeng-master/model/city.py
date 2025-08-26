@@ -2148,7 +2148,7 @@ def purchase(account,user_name,msg,path) -> str:
                 new_rod = {"name": goods_name, "endurance": 100}
                 rod_list.append(new_rod)
                 # 序列化为 JSON 字符串后存入 INI
-                basket_manager.update_key(section=account, key="Rod_List", value=json.dumps(rod_list))
+                basket_manager.update_key(section=account, key="Rod_List", value=json.dumps(rod_list, ensure_ascii=False))
             if goods_category == "fishing_bait":
                 bait_list = _check_list(basket_data.get("Bait_List", "[]"))
                 # 检查是否已拥有该鱼饵
@@ -2159,7 +2159,7 @@ def purchase(account,user_name,msg,path) -> str:
                     new_bait = {"name": goods_name, "num": 1}  # 新增鱼饵（初始数量 1）
                     bait_list.append(new_bait)
                 # 序列化为 JSON 字符串后存入 INI
-                basket_manager.update_key(section=account, key="Bait_List", value=json.dumps(bait_list))
+                basket_manager.update_key(section=account, key="Bait_List", value=json.dumps(bait_list, ensure_ascii=False))
     elif goods_category in ("game",):
         game_manager = IniFileReader(
             project_root=path,
@@ -2682,6 +2682,7 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
     return f"用户 {user_name} 已成功出狱！"
 
     pass
+
 def lift_rod(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""
     try:
@@ -2715,6 +2716,7 @@ def lift_rod(account:str, user_name:str, path) -> str:
         logger.error(f"释放用户 {account} 失败: {e}")
         return "出狱过程中发生错误，请联系管理员。"
     pass
+
 def my_creel(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""
     try:
@@ -2748,6 +2750,7 @@ def my_creel(account:str, user_name:str, path) -> str:
         logger.error(f"释放用户 {account} 失败: {e}")
         return "出狱过程中发生错误，请联系管理员。"
     pass
+
 def my_pond(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""
     try:
@@ -2781,6 +2784,7 @@ def my_pond(account:str, user_name:str, path) -> str:
         logger.error(f"释放用户 {account} 失败: {e}")
         return "出狱过程中发生错误，请联系管理员。"
     pass
+
 def fishing_encyclopedia(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""
     try:
