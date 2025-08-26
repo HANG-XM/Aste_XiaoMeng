@@ -2654,9 +2654,15 @@ def fish_menu():
 
 def cast_fishing_rod(account:str, user_name:str, path) -> str:
     """
-    钓鱼
-    """
+     处理用户抛竿钓鱼操作（优化版，增强校验与异常处理）
+     :param account: 用户账号
+     :param user_name: 用户昵称
+     :param path: 项目根路径
+     :return: 操作结果提示（含状态说明或错误信息）
+     """
+    # -------------------- 步骤1：读取基础数据（钓鱼状态/商店配置） --------------------
     try:
+        # 读取钓鱼记录文件（记录当前钓鱼状态）
         fish_manager = IniFileReader(
             project_root=path,
             subdir_name="City/Record",
@@ -2664,6 +2670,7 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
             encoding="utf-8",
         )
         fish_data = fish_manager.read_section(section=account,create_if_not_exists=True)
+        # 读取商店配置（获取鱼竿基础参数）
         shop_manager = ShopFileHandler(
             project_root=path,
             subdir_name="City/Set_up",
@@ -2671,15 +2678,20 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
             encoding="utf-8",
         )
     except Exception as e:
-        logger.error(f"读取错误：{str(e)}")
-        return "系统繁忙，请稍后重试！"
+        logger.error(f"初始化数据读取器失败：{str(e)}", exc_info=True)
+        return "系统繁忙，请稍后重试（数据加载异常）"
+
+    # -------------------- 步骤2：校验当前钓鱼装备 --------------------
+    # 校验鱼竿是否存在
     user_rod = fish_data.get("current_rod")
     if not user_rod:
         return f"{user_name} 当前未使用鱼竿"
+    # 校验鱼饵是否存在
     user_bait = fish_data.get("current_bait")
     if not user_bait:
         return f"{user_name} 当前未使用鱼饵"
 
+    # -------------------- 步骤3：读取购物篮数据（耐久/数量） --------------------
     try:
         basket_manager = IniFileReader(
             project_root=path,
@@ -2693,27 +2705,46 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
         return "系统繁忙，请稍后重试！"
 
     current_rod_endurance = basket_data.get(user_rod, 0)
-    if current_rod_endurance == 0:
-        return "鱼竿耐久消耗完毕了！该鱼竿已经报废！"
-    current_bait_amount = basket_data.get(user_bait,0)
-    if current_bait_amount == 0:
-        return "鱼饵不足了！请更换鱼饵或者购买新的鱼饵！"
+    # 校验鱼竿耐久是否足够
+    if current_rod_endurance <= 0:
+        return f"{user_name} 当前鱼竿（{user_rod}）耐久已耗尽，无法使用！请更换新鱼竿。"
+    current_bait_amount = basket_data.get(user_bait, 0)
+    # 校验鱼饵数量是否足够
+    if current_bait_amount <= 0:
+        return f"{user_name} 当前鱼饵（{user_bait}）数量不足（剩余：{current_bait_amount}），请更换或购买新鱼饵！"
 
+    # -------------------- 步骤4：生成钓鱼时间范围 --------------------
     rod_data = shop_manager.get_item_info(user_rod)
     now_time = time.time()
-    end_min = random.randint(a = 12,b = 22)
+    # 生成随机延迟范围（范围=基础+附加）
+    end_min = random.randint(a = constants.FISH_TIME_START,b = constants.FISH_TIME_END)
     end_max = end_min + constants.FISH_TIME_INTERVAL + rod_data.get("time",0)
-    fish_manager.update_section_keys(section=account, data={
-        "fish":True,
-        "start":now_time,
-        "end_min":now_time + end_min,
-        "end_max":now_time + end_max,
-        "bait:":user_bait
-    })
-    fish_manager.save(encoding="utf-8")
-    basket_manager.update_key(section=account,key=user_bait,value=current_bait_amount - 1)
-    basket_manager.save(encoding="utf-8")
-    return f"开始钓鱼了，请在{end_min}秒{end_max}后发送[提竿]"
+    try:
+        fish_manager.update_section_keys(section=account, data={
+            "is_fishing": True,
+            "start": now_time,
+            "end_min": now_time + end_min,
+            "end_max": now_time + end_max,
+            "bait:": user_bait
+        })
+        fish_manager.save(encoding="utf-8")
+    except Exception as e:
+        logger.error(f"保存错误：{str(e)}")
+        return "系统繁忙，请稍后重试！"
+    # -------------------- 步骤5：更新购物篮数据 --------------------
+    try:
+        basket_manager.update_key(section=account, key=user_bait, value=current_bait_amount - 1)
+        basket_manager.save(encoding="utf-8")
+    except Exception as e:
+        logger.error(f"扣减鱼饵数量失败：{str(e)}", exc_info=True)
+        return "系统繁忙，请稍后重试（鱼饵数量更新失败）"
+    # -------------------- 步骤6：返回成功提示 --------------------
+    return (
+        f"{user_name} 抛竿成功！\n"
+        f"当前鱼竿：{user_rod}（剩余耐久：{current_rod_endurance - 1}）\n"
+        f"当前鱼饵：{user_bait}（剩余数量：{current_bait_amount - 1}）\n"
+        f"请耐心等待 {end_min}-{end_max} 秒后发送【提竿】获取渔获！"
+    )
 
 def lift_rod(account:str, user_name:str, path,fish_handler:FishFileHandler) -> str:
     fish = fish_handler.get_random_fish_by_bait()
