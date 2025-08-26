@@ -2173,7 +2173,7 @@ def purchase(account,user_name,msg,path) -> str:
         files_to_save.append(("Game.info", game_manager))
         game_manager.update_key(section=account, key=goods_name, value=game_data.get(goods_name, 0) + 1)
     # -------------------- 扣减 --------------------
-    shop_handler.update_data(key=goods_name + ".quantity", value=goods_quantity - 1)
+    shop_handler.update_data(key=f"{goods_name}.quantity", value=goods_quantity - 1,validate=True)
     user_manager.update_key(section=account, key="coin", value=user_gold - goods_price)
     # -------------------- 提交所有修改 --------------------
     try:
@@ -2186,13 +2186,8 @@ def purchase(account,user_name,msg,path) -> str:
     # -------------------- 构造成功提示 --------------------
     effect_msg = goods_data.get("effect_msg", "祝您游戏愉快～")
     success_tips = {
-        "gift": f"购买成功！该{goods_name}已经放入[背包]",
-        "exp": f"购买成功！该{goods_name}已经放入[背包]",
-        "stamina": f"购买成功！该{goods_name}已经放入[背包]",
-        "fishing_rod":  f"购买成功！该{goods_name}已经放入[背包]",
-        "fishing_bait":  f"购买成功！该{goods_name}已经放入[背包]",
         "game": f"购买成功！该商品{user_name}为群主礼物赠送，时间不固定！"
-    }.get(goods_category, "购买成功！")
+    }.get(goods_category, f"购买成功！该{goods_name}已经放入[背包]")
 
     return f"{success_tips}\n{effect_msg}"
 
