@@ -84,7 +84,7 @@ class IniFileReader:
         """
         更新/新增单个键值对（内存生效，需调用save保存）
         :param section: 节名（不存在则自动创建）
-        :param key: 键名
+        :param key: 键名（不存在则自动创建）
         :param value: 值（自动转换为INI兼容字符串）
         :param encoding: 写入编码（可选）
         """
@@ -774,4 +774,147 @@ class ShopFileHandler:
 
         # 提取最终结果（格式：[(商品名, 商品详情), ...]）
         return [(name, detail) for name, detail in sorted_result]
-# ---------------------------- 使用示例 ----------------------------
+
+class FishFileHandler:
+    """
+    高效读写JSON文件的工具类、数据增删改查、层级信息提取
+    """
+
+    def __init__(
+            self,
+            project_root: Path,  # 显式传入最终数据目录的绝对路径（如 F:\...\Data）
+            subdir_name: str,  # 子目录名（支持斜杠分隔，如 "City/Personal"）
+            file_relative_path: str,  # 文件名（如 "jobs.json"）
+            encoding: str = "utf-8"
+    ):
+        """
+        初始化JSON文件处理器
+
+        :param project_root: 最终数据目录的绝对路径（如 F:\Tool\...\Data）
+        :param subdir_name: JSON文件所在的子目录名（相对于 project_root，支持斜杠分隔）
+        :param file_relative_path: JSON文件名（相对于 project_root/subdir_name）
+        :param encoding: 文件编码（默认utf-8）
+        """
+        self.project_root = project_root  # 最终数据目录（如 F:\...\Data）
+        self.subdir_name = subdir_name    # 子目录（相对于 project_root）
+        self.file_relative_path = file_relative_path  # 文件名（相对于 project_root/subdir_name）
+        self.encoding = encoding
+        self.file_path = self._get_file_path()  # 完整文件绝对路径
+        self.data = self._load_data()         # 初始化时加载数据到内存
+
+    def _get_file_path(self) -> Path:
+        """构建JSON文件的绝对路径（核心逻辑：project_root + subdir_name + file_relative_path）"""
+        # 拼接路径（Path自动处理不同系统的分隔符，如 Windows 反斜杠、Linux 正斜杠）
+        return self.project_root / self.subdir_name / self.file_relative_path
+
+    def _load_data(self) -> Dict[str, Any]:
+        """加载JSON文件数据到内存（文件不存在时创建空文件和空数据）"""
+        # 若文件不存在，创建父目录并初始化空数据
+        if not self.file_path.exists():
+            self.file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.file_path, "w", encoding=self.encoding) as f:
+                json.dump({}, f, indent=4, ensure_ascii=False)
+            return {}
+
+        # 文件存在时加载数据
+        try:
+            with open(self.file_path, "r", encoding=self.encoding) as f:
+                return json.load(f)
+        except Exception as e:
+            raise RuntimeError(f"加载JSON文件失败: {self.file_path}, 错误: {e}")
+
+    def save(self, encoding: Optional[str] = None) -> None:
+        """
+        将内存中的数据保存回JSON文件（原子化保存，避免写入过程中损坏文件）
+
+        Args:
+            encoding: 可选参数，指定保存文件的编码。若未传入，则使用类初始化时的 `self.encoding`（默认"utf-8"）
+        """
+        # 确定最终使用的编码（优先使用方法参数，否则用类属性）
+        save_encoding = encoding if encoding is not None else self.encoding
+
+        try:
+            # 原子化保存：先写入临时文件，再替换原文件
+            temp_file = tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding=save_encoding,  # 使用最终确定的编码
+                dir=str(self.file_path.parent),
+                prefix=f".{self.file_path.name}.tmp.",
+                delete=False
+            )
+            with temp_file:
+                json.dump(self.data, temp_file, indent=4, ensure_ascii=False)
+
+            # 替换原文件（操作系统保证原子性）
+            os.replace(temp_file.name, str(self.file_path))
+        except Exception as e:
+            # 清理临时文件
+            if 'temp_file' in locals() and os.path.exists(temp_file.name):
+                try:
+                    os.unlink(temp_file.name)
+                except Exception as cleanup_err:
+                    print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
+            raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
+
+    def update_data(
+            self,
+            key: str,
+            value: Any,
+            validate: bool = True,  # 新增：是否启用数据验证
+            expected_type: Optional[type] = None  # 新增：期望的值类型（可选）
+    ) -> None:
+        """
+        安全更新内存中的数据（支持嵌套键），可选数据验证
+
+        :param key: 要更新的键（支持嵌套键，如"quantity"或"20.00.jobName"）
+        :param value: 要设置的新值
+        :param validate: 是否启用数据验证（默认启用）
+        :param expected_type: 期望的值类型（如int、str，可选）
+        :raises ValueError: 数据验证失败时抛出
+        """
+        if not key:
+            raise ValueError("键不能为空")
+
+        keys = key.split(".")
+        current = self.data
+
+        # 遍历嵌套键，逐层创建或更新字典
+        for i, k in enumerate(keys[:-1]):
+            if not isinstance(k, str):
+                raise ValueError(f"键包含非字符串部分：{k}")
+            if k not in current:
+                current[k] = {}  # 自动创建缺失的嵌套字典
+            current = current[k]
+            if not isinstance(current, dict):
+                # 防止覆盖非字典类型的中间节点（如误将列表当字典更新）
+                raise ValueError(f"键路径 '{'.'.join(keys[:i + 1])}' 指向非字典类型，无法继续更新")
+
+        # 最终键的赋值
+        last_key = keys[-1]
+        if validate:
+            # 数据验证逻辑（根据业务需求扩展）
+            if expected_type is not None and not isinstance(value, expected_type):
+                raise ValueError(f"键 '{last_key}' 的值类型应为 {expected_type.__name__}，当前为 {type(value).__name__}")
+
+        current[last_key] = value
+
+    def __getitem__(self, key: str) -> Any:
+        """支持通过[]直接访问数据（如handler["jobSeries"]["10"]）"""
+        return self.data[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """支持通过[]直接修改数据（如handler["jobSeries"]["10"] = new_data）"""
+        self.data[key] = value
+
+    def __repr__(self) -> str:
+        """友好的字符串表示"""
+        return f"JobFileHandler(file_path={self.file_path}, encoding={self.encoding})"
+
+    def get_item_info(self, item_name: str) -> Optional[Dict[str, Any]]:
+        """
+        根据商品名精确查找商品信息
+
+        :param item_name: 鱼名称
+        :return: 匹配鱼字典，若未找到返回None
+        """
+        return self.data.get(item_name)
