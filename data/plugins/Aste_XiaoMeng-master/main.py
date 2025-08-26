@@ -123,6 +123,7 @@ class XIAOMENG(Star):
             "越狱": lambda: city.prison_break(user_account,user_name,self.directory),
             "出狱": lambda: city.released(user_account,user_name,self.directory),
             "钓鱼菜单":lambda :city.fish_menu(),
+            "钓鱼":lambda: city.cast_fishing_rod(user_account,user_name,self.directory),
         }
 
         # 查找匹配的处理函数

@@ -119,3 +119,5 @@ ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（
     {"text": "🍀 虽然没抢到，但你在地上捡到了别人掉落的 1 金币！算是安慰奖吧！",
      "stamina_loss": 1, "coin_change": 1, "jail": False},
 ]
+
+FISH_TIME_INTERVAL = 5                      # 钓鱼时间间隔

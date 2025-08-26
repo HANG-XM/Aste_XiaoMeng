@@ -2653,43 +2653,45 @@ def fish_menu():
     )
 
 def cast_fishing_rod(account:str, user_name:str, path) -> str:
-    """手动释放用户（出狱）"""
+    """
+    钓鱼
+    """
     try:
-        rob_manager = IniFileReader(
-            project_root=path, subdir_name="City/Record", file_relative_path="Rob.data", encoding="utf-8"
+        fish_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Record",
+            file_relative_path="Fish.data",
+            encoding="utf-8",
+        )
+        fish_data = fish_manager.read_section(section=account,create_if_not_exists=True)
+        shop_manager = ShopFileHandler(
+            project_root=path,
+            subdir_name="City/Set_up",
+            file_relative_path="Shop.res",
+            encoding="utf-8",
         )
     except Exception as e:
-        logger.error(f"释放用户 {account} 失败: {e}")
-        return "出狱过程中发生错误，请联系管理员。"
-    # 检测当前入狱状态（可选）
-    current_jail_time = rob_manager.read_key(section=account, key="jail_time",default=0)
-    if current_jail_time <= 0:
-        return f"{user_name} 你未入狱，无需出狱！"
-    # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
-    if current_jail_time + constants.JAIL_TIME > time.time():
-        remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
-        return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
-    try:
-        user_manager = IniFileReader(
-            project_root=path, subdir_name="City/Personal", file_relative_path="Briefly.info", encoding="utf-8"
-        )
-    except Exception as e:
-        logger.error(f"释放用户 {account} 失败: {e}")
-        return "出狱过程中发生错误，请联系管理员。"
+        logger.error(f"读取错误：{str(e)}")
+        return "系统繁忙，请稍后重试！"
+    user_rod = fish_data.get("current_rod")
+    if not user_rod:
+        return f"{user_name} 当前未使用鱼竿"
+    user_bait = fish_data.get("current_bait")
+    if not user_bait:
+        return f"{user_name} 当前未使用鱼饵"
 
-    user_stamina =user_manager.read_key(section=account, key="stamina",default=0)
-    if user_stamina < constants.RELEASED_STAMINA:
-        return f"{user_name} 体力不足，休息一会再出狱吧！"
-    new_stamina = user_stamina - constants.RELEASED_STAMINA
-    user_manager.update_key(section=account, key="stamina", value=new_stamina)
-    user_manager.save(encoding="utf-8")
-    # 清除入狱时间（设置为0表示未入狱）
-    rob_manager.update_key(section=account, key="jail_time", value=0)
-    rob_manager.save(encoding="utf-8")
-    # 可选：同步其他状态（如体力、金币）
-    return f"用户 {user_name} 已成功出狱！"
+    rod_data = shop_manager.get_item_info(user_rod)
+    now_time = time.time()
+    end_min = random.randint(a = 12,b = 22)
+    end_max = end_min + constants.FISH_TIME_INTERVAL + rod_data.get("time",0)
+    fish_manager.update_section_keys(section=account, data={
+        "fish":True,
+        "start":now_time,
+        "end_min":now_time + end_min,
+        "end_max":now_time + end_max
+    })
 
-    pass
+    return f"开始钓鱼了，请在{end_min}秒{end_max}后发送[提竿]"
 
 def lift_rod(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""
