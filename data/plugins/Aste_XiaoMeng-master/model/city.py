@@ -2747,10 +2747,54 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
     )
 
 def lift_rod(account:str, user_name:str, path,fish_handler:FishFileHandler) -> str:
-    fish = fish_handler.get_random_fish_by_bait()
+    try:
+        use_data_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Personal",
+            file_relative_path="Briefly.info",
+            encoding="utf-8",
+        )
+        user_stamina = use_data_manager.read_key(section=account, key="stamina", default=0)
+        user_fish_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Record",
+            file_relative_path="Fish.data",
+            encoding="utf-8",
+        )
+        user_fish_data = user_fish_manager.read_section(section=account,create_if_not_exists=True)
+    except Exception as e:
+        logger.error(f"初始化用户读取器错误：{str(e)}", exc_info=True)
+        return "系统繁忙！请稍后重试"
 
-    fish_manager = FishFileHandler()
-    pass
+    if not user_fish_data.get("is_fishing",False):
+        return f"{user_name} 当前你未在钓鱼！"
+
+    # 检查时间
+    now_time = time.time()
+
+    # 减少体力
+    if user_stamina < constants.FISH_STAMINA:
+        return "体力不足，无法提竿"
+
+    try:
+        new_stamina = user_stamina - constants.FISH_STAMINA
+        use_data_manager.update_key(section=account, key="stamina", value=new_stamina)
+        use_data_manager.save(encoding="utf-8")
+    except Exception as e:
+        logger.error(f"保存数据错误：{str(e)}", exc_info=True)
+        return "系统繁忙！请稍后重试"
+
+    if user_fish_data.get("end_min") < now_time or now_time > user_fish_data.get("end_max"):
+        return "时间不对，下次再早点或晚点吧，钓鱼失败！"
+
+    user_bait = user_fish_data.get("current_bait")
+    user_fish = fish_handler.get_random_fish_by_bait(user_bait)
+    # 已经确定只有一个键值对
+    fish_name,fish_data =user_fish.items()
+    try:
+
+
+    return f"好耶！{user_name}钓到了{fish_name}让我们恭喜TA吧！"
 
 def my_creel(account:str, user_name:str, path) -> str:
     """手动释放用户（出狱）"""

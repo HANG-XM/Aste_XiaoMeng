@@ -123,3 +123,4 @@ ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（
 FISH_TIME_INTERVAL = 5                   # 钓鱼时间间隔
 FISH_TIME_START = 12                     # 钓鱼开始时间
 FISH_TIME_END = 22                       # 钓鱼结束时间
+FISH_STAMINA = 2                         # 钓鱼消耗体力
