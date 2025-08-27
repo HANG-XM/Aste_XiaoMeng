@@ -88,65 +88,70 @@ class XIAOMENG(Star):
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
         """事件处理器"""
-        msg = event.get_message_str()
+        msg = event.get_message_str().strip()  # 去除首尾空格
         user_name = event.get_sender_name()
         user_account = event.get_sender_id()
 
-        # 定义指令与处理函数的映射（核心优化：字典调度）
-        command_handlers: Dict[str, Callable[[], str]] = {
-            "小梦菜单":lambda: city.xm_main(),
-            "签到": lambda: city.check_in(user_account,user_name,self.directory),
-            "查询": lambda: city.query(user_account,user_name,self.directory),
-            "绑定": lambda: city.bind(user_account,user_name,msg,self.directory),
-            "打工菜单": lambda: city.work_menu(),
-            "打工": lambda: city.work(user_account,user_name,self.directory,self.job_manager),
-            "加班": lambda: city.overwork(user_account,user_name,self.directory,self.job_manager),
-            "辞职": lambda: city.resign(user_account,user_name,self.directory,self.job_manager),
-            "跳槽": lambda: city.job_hopping(user_account,user_name,self.directory,self.job_manager),
-            "领工资": lambda: city.get_paid(user_account,user_name,self.directory,self.job_manager),
-            "找工作": lambda: city.job_hunting(msg,self.job_manager),
-            "查工作": lambda: city.check_job(msg,self.job_manager),
-            "投简历":  lambda :city.submit_resume(user_account,user_name,msg,self.directory,self.job_manager),
-            "工作池": lambda: city.jobs_pool(msg,self.directory,self.job_manager),
-            "银行菜单": lambda: city.bank_menu(),
-            "存款": lambda: city.deposit(user_account, user_name, msg,self.directory),
-            "取款": lambda: city.withdraw(user_account,user_name,msg,self.directory),
-            "贷款":lambda :city.loan(user_account,user_name,msg,self.directory),
-            "还款":lambda :city.repayment(user_account,user_name,msg,self.directory),
-            "存定期": lambda: city.fixed_deposit(user_account,user_name,msg,self.directory),
-            "取定期": lambda: city.redeem_fixed_deposit(user_account,user_name,self.directory),
-            "查存款":lambda :city.check_deposit(user_account,user_name,self.directory),
-            "转账":lambda :city.transfer(user_account,user_name,msg,self.directory),
-            "商店菜单":lambda :city.shop_menu(),
-            "商店": lambda: city.shop(msg,self.directory),
-            "查商品": lambda: city.check_goods(msg,self.directory),
-            "购买": lambda: city.purchase(user_account,user_name,msg,self.directory),
-            "背包": lambda: city.basket(user_account, user_name, self.directory),
-            "使用": lambda: city.use(user_account, user_name,msg,self.directory),
-            "打劫菜单": lambda: city.rob_menu(),
-            "打劫": lambda: city.rob(user_account,user_name,msg,self.directory),
-            "保释": lambda: city.post_bail(user_account,user_name,msg,self.directory),
-            "越狱": lambda: city.prison_break(user_account,user_name,self.directory),
-            "出狱": lambda: city.released(user_account,user_name,self.directory),
-            "钓鱼菜单":lambda :city.fish_menu(),
-            "钓鱼":lambda: city.cast_fishing_rod(user_account,user_name,self.directory),
-            "提竿":lambda: city.lift_rod(user_account,user_name,self.directory,self.fish_manager),
-            "金币排行":lambda: city.gold_rank(user_account,user_name,self.directory),
+        # 定义指令与处理函数的映射（直接引用函数，而非lambda）
+        command_handlers: Dict[str, Callable] = {
+            "小梦菜单": city.xm_main,
+            "签到": city.check_in,
+            "查询": city.query,
+            "绑定": city.bind,
+            "打工菜单": city.work_menu,
+            "打工": city.work,
+            "加班": city.overwork,
+            "辞职": city.resign,
+            "跳槽": city.job_hopping,
+            "领工资": city.get_paid,
+            "找工作": city.job_hunting,
+            "查工作": city.check_job,
+            "投简历": city.submit_resume,
+            "工作池": city.jobs_pool,
+            "银行菜单": city.bank_menu,
+            "存款": city.deposit,
+            "取款": city.withdraw,
+            "贷款": city.loan,
+            "还款": city.repayment,
+            "存定期": city.fixed_deposit,
+            "取定期": city.redeem_fixed_deposit,
+            "查存款": city.check_deposit,
+            "转账": city.transfer,
+            "商店菜单": city.shop_menu,
+            "商店": city.shop,
+            "查商品": city.check_goods,
+            "购买": city.purchase,
+            "背包": city.basket,
+            "使用": city.use,
+            "打劫菜单": city.rob_menu,
+            "打劫": city.rob,
+            "保释": city.post_bail,
+            "越狱": city.prison_break,
+            "出狱": city.released,
+            "钓鱼菜单": city.fish_menu,
+            "钓鱼": city.cast_fishing_rod,
+            "提竿": city.lift_rod,
+            "金币排行": city.gold_rank,  # 直接引用异步函数
         }
 
-        # 查找匹配的处理函数
-        handler: Callable[..., Any] = command_handlers.get(msg.split()[0] if msg else "")  # 提取指令关键词
+        # 提取指令关键词（优先匹配完整指令，避免部分匹配）
+        command = next((cmd for cmd in command_handlers if msg.startswith(cmd)), None)
+        if not command:
+            return
 
-        # 执行处理函数（兼容同步/异步方法）
-        if handler is None:
-            pass
-        else:
+        handler = command_handlers[command]
+        try:
+            # 根据函数类型执行（同步/异步）
             if asyncio.iscoroutinefunction(handler):
-                text = await handler()
+                # 异步函数：传递当前消息的参数并等待执行
+                text = await handler(user_account, user_name, self.directory)
             else:
-                loop = asyncio.get_event_loop()
-                text = await loop.run_in_executor(None, handler)
+                # 同步函数：直接调用（确保函数内部无异步操作）
+                text = handler(user_account, user_name, self.directory)
             yield event.plain_result(text)
+        except Exception as e:
+            logger.error(f"执行指令「{command}」失败: {str(e)}", exc_info=True)
+            yield event.plain_result(f"执行指令时出错：{str(e)}")
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
