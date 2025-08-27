@@ -6,7 +6,6 @@ from decimal import Decimal, ROUND_HALF_UP  # 引入 Decimal 类型
 from typing import Dict, Any, List, Tuple
 from collections import defaultdict
 from datetime import datetime
-import json
 
 from .directory import IniFileReader,JobFileHandler,ShopFileHandler,FishFileHandler  # 导入专用读取函数
 from .city_func import is_arabic_digit,get_by_qq,preprocess_date_str,calculate_delta_days,get_dynamic_rob_ratio
@@ -16,15 +15,13 @@ from astrbot.api import logger
 
 def xm_main() -> str:
     return (
-        f"🏠 小梦菜单 ✨"
-        f"\n———————"
-        f"\n✅ 签到"
-        f"\n🔍 查询"
+        f"        ✨ 小梦菜单 ✨"
+        f"\n————————————"
+        f"\n✅ 签到        | 🔍 查询"
         f"\n🔗 绑定"
-        f"\n💼 打工菜单"
-        f"\n🏦 银行菜单"
-        f"\n🏪 商店菜单"
-        f"\n⚔️ 打劫菜单"
+        f"\n💼 打工菜单 | ⚔️ 打劫菜单"
+        f"\n🏦 银行菜单 | 🏪 商店菜单"
+        f"\n🎣 钓鱼菜单 | 🏆 排行菜单"
         )
 
 def check_in(account,user_name:str,path)->str:
@@ -2791,8 +2788,6 @@ def lift_rod(account:str, user_name:str, path,fish_handler:FishFileHandler) -> s
     user_fish = fish_handler.get_random_fish_by_bait(user_bait)
     # 已经确定只有一个键值对
     fish_name,fish_data =user_fish.items()
-    try:
-
 
     return f"好耶！{user_name}钓到了{fish_name}让我们恭喜TA吧！"
 
