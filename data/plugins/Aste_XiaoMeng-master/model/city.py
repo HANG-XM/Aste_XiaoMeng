@@ -1236,14 +1236,11 @@ def deposit(account,user_name,msg,path) -> str:
     :param path:数据目录
     :return: 结果提示
     """
-    current_time = datetime.now().strftime("%Y年%m月%d日 %H:%M")  # 获取当前时间
-    # 统一错误提示前缀（可选）
-    error_prefix = "❌ 存款操作提示"
-    success_prefix = "✅ 存款操作完成"
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M")  # 获取当前时间
 
     if not msg.startswith("存款 "):
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"存款格式应为：存款 [金额]（例：存款 {constants.DEPOSIT_MULTIPLE_BASE}）\n"
             f"✨ 温馨提示：金额需为{constants.DEPOSIT_MULTIPLE_BASE}的整数倍，"
             f"如{constants.DEPOSIT_MULTIPLE_BASE}、{constants.DEPOSIT_MULTIPLE_BASE*3}等。"
@@ -1251,26 +1248,26 @@ def deposit(account,user_name,msg,path) -> str:
     parts = msg.split()
     if len(parts) < 2:
         return (
-            f"{error_prefix}\n"
-            f"信息不完整呢~ 请补充完整的存款金额\n"
+            f"{constants.ERROR_PREFIX}\n"
+            f"信息不完整呢~ 请补充完整的金额\n"
             f"📝 示例：存款 {constants.DEPOSIT_MULTIPLE_BASE}（表示存入{constants.DEPOSIT_MULTIPLE_BASE}金币）"
         )
     try:
         amount = int(parts[1])
     except ValueError:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"金额格式错误~ 请输入有效的整数"
         )
     if amount <= 0:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"金额不能为0或负数哦~ 请输入大于0的数值\n"
             f"💡 建议：至少存入{constants.DEPOSIT_MULTIPLE_BASE}金币（如：存款 {constants.DEPOSIT_MULTIPLE_BASE}）。"
         )
     if amount % constants.DEPOSIT_MULTIPLE_BASE != 0:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"当前金额不符合要求呢~ 存款需为 {constants.DEPOSIT_MULTIPLE_BASE} 的整数倍\n"
             f"🔢 示例："
             f"{constants.DEPOSIT_MULTIPLE_BASE}（1倍）、"
@@ -1288,7 +1285,7 @@ def deposit(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"个人账户读取失败~ \n"
             f"⚠️ 错误原因：读取\n"
             f"💡 请联系管理员核查个人账户数据~"
@@ -1297,10 +1294,10 @@ def deposit(account,user_name,msg,path) -> str:
     user_gold = user_data.get("coin", 0)
     if user_gold < amount:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"余额不足，无法完成存款~ 😔\n"
-            f"📊 当前个人账户：{user_gold} 个\n"
-            f"🎯 本次拟存款金额：{amount} 个\n"
+            f"📊 当前账户：{user_gold} 个\n"
+            f"🎯 拟存款金额：{amount} 个\n"
             f"📝 差额提示：还差 {amount - user_gold} 个金币\n"
             f"💪 建议：先通过任务或交易赚取更多金币后再尝试哦~"
         )
@@ -1312,7 +1309,7 @@ def deposit(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"个人账户更新失败~ \n"
             f"⚠️ 错误原因：保存\n"
             f"💡 请联系管理员核查个人账户数据~"
@@ -1328,7 +1325,7 @@ def deposit(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"个人账户读取失败~ \n"
             f"⚠️ 错误原因：读取\n"
             f"💡 请联系管理员核查个人账户数据~"
@@ -1342,15 +1339,16 @@ def deposit(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"个人账户更新失败~ 银行账户已恢复\n"
             f"⚠️ 错误原因：保存\n"
             f"💡 请联系管理员核查个人账户数据~"
         )
 
     success_msg = (
-        f"{success_prefix}\n"
-        f"🎉 {user_name} 先生/女士，您的存款操作已成功！⏰ 时间：{current_time}\n"
+        f"{constants.SUCCESS_PREFIX}\n"
+        f"🎉 {user_name} 先生/女士，您的操作已成功！\n"
+        f"⏰ 时间：{current_time}\n"
         f"💰 存入金额：{amount} 个金币\n"
         f"📉 个人账户：{new_gold} 个金币\n"
         f"🏦 银行账户：{new_deposit} 个金币\n"
@@ -1367,14 +1365,11 @@ def withdraw(account,user_name,msg,path) -> str:
     :param path:数据目录
     :return: 结果提示
     """
-    current_time = datetime.now().strftime("%Y年%m月%d日 %H:%M")  # 获取当前时间
-    # 统一提示前缀（可选）
-    error_prefix = "❌ 取款操作提示"
-    success_prefix = "✅ 取款操作完成"
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M")  # 获取当前时间
 
     if not msg.startswith("取款 "):
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"取款格式应为：取款 [金额]（例：取款 {constants.DEPOSIT_MULTIPLE_BASE}）\n"
             f"✨ 温馨提示：金额需为{constants.DEPOSIT_MULTIPLE_BASE}的整数倍，"
             f"例如{constants.DEPOSIT_MULTIPLE_BASE}、{constants.DEPOSIT_MULTIPLE_BASE*5}等。"
@@ -1382,7 +1377,7 @@ def withdraw(account,user_name,msg,path) -> str:
     parts = msg.split()
     if len(parts) < 2:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"信息不完整呢~ 请补充完整的取款金额\n"
             f"📝 示例：取款 {constants.DEPOSIT_MULTIPLE_BASE}（表示从银行取出{constants.DEPOSIT_MULTIPLE_BASE}金币）"
         )
@@ -1391,13 +1386,13 @@ def withdraw(account,user_name,msg,path) -> str:
 
     if amount <= 0:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"金额不能为0或负数哦~ 请输入大于0的数值\n"
             f"💡 建议：至少取出{constants.DEPOSIT_MULTIPLE_BASE}金币（如：取款 {constants.DEPOSIT_MULTIPLE_BASE}）。"
         )
     if amount % constants.DEPOSIT_MULTIPLE_BASE != 0:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"当前金额不符合要求呢~ 取款需为constants.DEPOSIT_MULTIPLE_BASE的整数倍\n"
             f"🔢 示例：{constants.DEPOSIT_MULTIPLE_BASE}（1倍）、"
             f"{constants.DEPOSIT_MULTIPLE_BASE*2}（2倍）、"
@@ -1415,14 +1410,14 @@ def withdraw(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"读取银行账户失败~ 请稍后再试\n"
             f"⚠️ 错误原因：读取"
         )
     bank_deposit = bank_data.get("deposit", 0)
     if bank_deposit < amount:
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"余额不足，无法完成取款~ 😔\n"
             f"📊 银行账户余额：{bank_deposit} 金币\n"
             f"🎯 本次拟取款金额：{amount} 金币\n"
@@ -1438,7 +1433,7 @@ def withdraw(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"银行账户更新失败~ 资金未变动\n"
             f"⚠️ 错误原因：保存\n"
             f"💡 请联系管理员核查数据~"
@@ -1455,7 +1450,7 @@ def withdraw(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"个人账户读取失败~ 银行账户已恢复\n"
             f"⚠️ 错误原因：读取\n"
             f"💡 请联系管理员核查个人账户数据~"
@@ -1470,14 +1465,14 @@ def withdraw(account,user_name,msg,path) -> str:
     except Exception as e:
         logger.info(str(e))
         return (
-            f"{error_prefix}\n"
+            f"{constants.ERROR_PREFIX}\n"
             f"个人账户更新失败~ 银行账户已恢复\n"
             f"⚠️ 错误原因：保存\n"
             f"💡 请联系管理员核查个人账户数据~"
         )
 
     success_msg = (
-        f"{success_prefix}\n"
+        f"{constants.SUCCESS_PREFIX}\n"
         f"🎉 {user_name} ，您的取款操作已成功！\n"
         f"⏰ 时间：{current_time}\n"
         f"💸 取出金额：{amount} 金币\n"
@@ -1762,7 +1757,7 @@ def redeem_fixed_deposit(account,user_name,path) -> str:
             encoding="utf-8"
         )
         bank_data: Dict[str, str] = bank_manager.read_section(section=account, create_if_not_exists=True)
-        current_deposit  = bank_data.get("deposit", 0)
+        current_deposit = bank_data.get("deposit", 0)
         current_fixed_deposit  = bank_data.get("fixed_deposit", 0)
         fixed_deposit_date = bank_data.get("fixed_deposit_date", "1970-01-01")
     except Exception as e:
@@ -2045,7 +2040,7 @@ def purchase(account,user_name,msg,path) -> str:
     购买功能
     """
     if not msg.startswith("购买 "):
-        return "想要购买什么呢？发送[小梦商店]查看心仪的商品吧！\n购买格式示例：购买 小心心"
+        return "想要购买什么呢？发送[商店]查看心仪的商品吧！\n购买格式示例：购买 小心心"
 
     goods_name = msg[3:].strip()
     if not goods_name:
@@ -2070,7 +2065,7 @@ def purchase(account,user_name,msg,path) -> str:
         hint = f"未找到商品「{goods_name}」"
         if similar_goods:
             hint += f"，猜你想要：{'、'.join(similar_goods[0])}？"
-        hint += "\n发送[小梦商店]查看所有商品"
+        hint += "\n发送[商店]查看所有商品"
         return hint
 
     goods_data = shop_handler.data[goods_name]
@@ -2291,7 +2286,7 @@ def check_goods( msg:str, path):
 
 def use(account,user_name,msg,path) -> str:
     if not msg.startswith("使用 "):
-        return f"{user_name} 使用方法：使用 物品。各项物品可前往[小梦商店]查看"
+        return f"{user_name} 使用方法：使用 物品。各项物品可前往[商店]查看"
 
     try:
         basket_manager = IniFileReader(
