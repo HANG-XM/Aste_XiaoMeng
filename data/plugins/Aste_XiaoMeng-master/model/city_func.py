@@ -1,4 +1,6 @@
 import re
+from typing import Optional
+
 import aiohttp
 import asyncio
 import json
@@ -137,18 +139,23 @@ def get_dynamic_rob_ratio(victim_gold: int) -> float:
     else:
         return 0.002  # 0.2%
 
-async def get_qq_nickname(qq_number: str) -> str:
+async def get_qq_nickname(qq_number: str,api_type:int) -> str:
     """
-    通过 QQ 号获取昵称（基于你提供的接口格式）
+    通过 QQ 号获取昵称（支持多接口类型切换）
     :param qq_number: QQ 号码（如 "3314562947"）
-    :return: 昵称或错误信息
+    :param api_type: 接口类型（0-旧版头像接口；1-第三方轻量接口）
+    :return: 昵称（成功）或错误提示（失败）
     """
 
-    # portraitCallBack({"3314562947":["http://qlogo4.store.qq.com/qzone/3314562947/3314562947/100",2564,-1,0,0,0,"HG",0]})
-    # 假设的第三方接口 URL（需替换为真实接口）
-    url = f"http://users.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?uins={qq_number}"
+    # 根据接口类型动态配置 URL
+    if api_type == 0:
+        url = f"http://users.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?uins={qq_number}"
+    elif api_type == 1:
+        url = f"https://api.ulq.cc/int/v1/qqname?qq={qq_number}"
+    else:
+        return "❌ 不支持的接口类型（仅支持 0 或 1）"
 
-    # 请求头（模拟浏览器，避免被拦截）
+    # 模拟浏览器的请求头（避免被简单反爬拦截）
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         "Accept": "application/json"
@@ -156,43 +163,78 @@ async def get_qq_nickname(qq_number: str) -> str:
 
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, headers=headers, timeout=10) as response:
+            # 发送异步 GET 请求（设置超时 10 秒）
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 # 检查 HTTP 状态码（非 200 表示请求失败）
                 if response.status != 200:
-                    return f"HTTP 请求失败，状态码：{response.status}"
+                    return f"❌ {api_type} 接口请求失败（状态码：{response.status}）"
 
-                # 读取响应文本（JSONP 格式）
-                response_text = await response.text()
+                # 根据接口类型解析响应
+                if api_type == 0:
+                    # ------------------------------ 旧版头像接口解析 ------------------------------
+                    # 读取原始字节内容并手动解码（避免编码错误）
+                    raw_content = await response.read()
+                    response_text = raw_content.decode("utf-8", errors="replace")
 
-                # 解析 JSONP：提取括号内的 JSON 数据
-                # 示例响应文本："portraitCallBack({...})"
-                jsonp_prefix = "portraitCallBack("
-                jsonp_suffix = ")"
-                if not (jsonp_prefix in response_text and jsonp_suffix in response_text):
-                    return "无效的 JSONP 响应格式（未找到 portraitCallBack 标记）"
+                    # 解析 JSONP 格式（示例："portraitCallBack({...})"）
+                    jsonp_prefix = "portraitCallBack("
+                    jsonp_suffix = ")"
+                    if not (jsonp_prefix in response_text and jsonp_suffix in response_text):
+                        return "⚠️ 旧版接口：无效的 JSONP 响应（未找到 portraitCallBack 标记）"
 
-                # 提取并解析 JSON
-                json_str = response_text[len(jsonp_prefix):-len(jsonp_suffix)]
-                data = json.loads(json_str)
+                    # 提取 JSON 部分（去除前后缀）
+                    json_str = response_text[len(jsonp_prefix):-len(jsonp_suffix)]
 
-                # 检查 QQ 号是否存在于响应中
-                qq_key = str(qq_number)
-                if qq_key not in data:
-                    return f"未找到 QQ 号 {qq_number} 的相关信息"
+                    # 解析 JSON 数据
+                    try:
+                        data = json.loads(json_str)
+                    except json.JSONDecodeError as e:
+                        return f"❌ 旧版接口：JSON 解析失败（错误：{str(e)}，原始数据：{json_str[:50]}...）"
 
-                # 提取昵称（数组的第6个元素，索引6）
-                user_info = data[qq_key]
-                if len(user_info) < 7:  # 确保数组长度足够（至少7个元素）
-                    return "接口返回数据不完整，无法提取昵称"
+                    # 检查 QQ 号是否存在
+                    qq_key = str(qq_number)
+                    if qq_key not in data:
+                        return f"ℹ️ 旧版接口：未找到 QQ 号 {qq_number} 的昵称信息（接口无数据）"
 
-                nickname = user_info[6]  # 索引6 是昵称（如 "HG"）
+                    # 提取用户信息数组（接口返回格式：{"QQ号": [头像URL, 好友数, ..., 昵称,...]}）
+                    user_info = data[qq_key]
+                    if not isinstance(user_info, list):
+                        return "❌ 旧版接口：返回数据格式异常（用户信息非数组）"
+
+                    # 动态查找昵称字段（兼容不同版本）
+                    possible_nick_indices = [6, 5, 7]  # 常见昵称位置（索引 6 为主）
+                    nickname: Optional[str] = None
+                    for idx in possible_nick_indices:
+                        if idx < len(user_info) and isinstance(user_info[idx], str) and user_info[idx].strip():
+                            nickname = user_info[idx].strip()
+                            break
+
+                    if not nickname:
+                        return f"ℹ️ 旧版接口：无法提取昵称（用户信息数组：{user_info}）"
+
+                elif api_type == 1:
+                    # ------------------------------ 第三方轻量接口解析 ------------------------------
+                    # 解析 JSON 格式（示例：{"code":200,"msg":"请求成功","qq":2740490583,"name":"๑挽؂๑宝"...}）
+                    try:
+                        data = await response.json()  # 直接解析 JSON（aiohttp 支持）
+                    except json.JSONDecodeError as e:
+                        return f"❌ 第三方接口：JSON 解析失败（错误：{str(e)}，原始数据：{await response.text()[:50]}...）"
+
+                    # 检查接口返回状态码（业务层错误码）
+                    if data.get("code") != 200:
+                        return f"❌ 第三方接口：业务错误（错误码：{data.get('code')}，信息：{data.get('msg')}）"
+
+                    # 提取昵称字段（根据接口文档，昵称在 "name" 字段）
+                    nickname = data.get("name")
+                    if not nickname or not isinstance(nickname, str):
+                        return "ℹ️ 第三方接口：返回数据中未找到有效昵称"
+
+                # 统一返回昵称（两种接口类型均在此处返回）
                 return nickname
 
         except aiohttp.ClientError as e:
-            return f"网络请求异常：{str(e)}"
-        except json.JSONDecodeError:
-            return "解析 JSON 失败，响应格式错误"
-        except IndexError:
-            return "接口返回数组长度不足，无法提取昵称"
+            return f"🌐 网络请求异常（错误：{str(e)}）"
+        except asyncio.TimeoutError:
+            return "⏳ 请求超时（接口响应过慢）"
         except Exception as e:
-            return f"未知错误：{str(e)}"
+            return f"❓ 未知错误（错误：{str(e)}）"

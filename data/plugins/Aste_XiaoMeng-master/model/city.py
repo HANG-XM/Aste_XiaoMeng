@@ -2854,19 +2854,19 @@ async def gold_rank(account: str, user_name: str, path) -> str:
     top_info_lines = []
     for idx, (acc, coin) in enumerate(top_users):
         try:
-            nickname = await get_qq_nickname(acc)  # 等待异步函数返回昵称
-            top_info_lines.append(f"第{idx + 1}名：{nickname} 金币：{coin}")
+            nickname = await get_qq_nickname(acc,1)  # 等待异步函数返回昵称
+            top_info_lines.append(f"第{idx + 1}名 {nickname} {coin} 金币")
         except Exception as e:
             # 处理昵称获取失败的情况（如记录日志或使用默认值）
             logger.error(f"获取用户 {acc} 昵称失败：{str(e)}")
-            top_info_lines.append(f"第{idx + 1}名：用户{acc}（昵称获取失败） 金币：{coin}")
+            top_info_lines.append(f"第{idx + 1}名 {acc} {coin} 金币")
 
     top_info = "\n".join(top_info_lines)  # 拼接所有行
 
     # 组装最终结果
     result = (
         f"📊 金币排行榜（前{len(top_users)}名）：\n{top_info}\n\n"
-        f"👤 {user_name} 第{rank_mapping[account]}名，金币：{target_user[1]}"
+        f"👤 {user_name} 第{rank_mapping[account]}名 {target_user[1]} 金币"
     )
     return result
 if __name__ == "__main__":
