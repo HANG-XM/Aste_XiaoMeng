@@ -91,6 +91,7 @@ FIXED_DEPOSIT_ANNUAL_INTEREST_RATE = Decimal('0.04')# 定期存款年利率（4%
 
 # 金额/时间基准配置
 DEPOSIT_MULTIPLE_BASE = 100                         # 存款/贷款/取款的最小额度（如：至少存100金币）
+FIXED_DEPOSIT_MULTIPLE_BASE = 10000                 # 存定期的最小额度（如：至少存10000金币）
 SECONDS_PER_YEAR = Decimal('31104000')              # 一年的总秒数（360天×86400秒/天，用于利息计算）
 
 # 转账手续费配置

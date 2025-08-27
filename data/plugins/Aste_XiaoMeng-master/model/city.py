@@ -1690,8 +1690,8 @@ def fixed_deposit(account,user_name,msg,path) -> str:
                 f"（例：存定期 {constants.DEPOSIT_MULTIPLE_BASE}）")
     if amount <= 0:
         return "存定期0个金币可不行~😜 至少存定期1个吧！"
-    if amount % constants.DEPOSIT_MULTIPLE_BASE != 0:
-        return f"{user_name}，存定期金额必须是{constants.DEPOSIT_MULTIPLE_BASE}的整数倍哦~😢 "
+    if amount % constants.FIXED_DEPOSIT_MULTIPLE_BASE != 0:
+        return f"{user_name}，存定期金额必须是{constants.FIXED_DEPOSIT_MULTIPLE_BASE}的整数倍哦~😢 "
     # -------------------- 读取账户数据（含异常处理） --------------------
     try:
         bank_manager = IniFileReader(
