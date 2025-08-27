@@ -130,7 +130,8 @@ class XIAOMENG(Star):
             "出狱": lambda: city.released(user_account,user_name,self.directory),
             "钓鱼菜单":lambda :city.fish_menu(),
             "钓鱼":lambda: city.cast_fishing_rod(user_account,user_name,self.directory),
-            "提竿":lambda :city.lift_rod(user_account,user_name,self.directory,self.fish_manager),
+            "提竿":lambda: city.lift_rod(user_account,user_name,self.directory,self.fish_manager),
+            "金币排行":lambda: city.gold_rank(user_account,user_name,self.directory),
         }
 
         # 查找匹配的处理函数

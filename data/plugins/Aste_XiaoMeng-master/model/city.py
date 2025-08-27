@@ -2819,5 +2819,50 @@ def my_pond(account:str, user_name:str, path) -> str:
 
 def fishing_encyclopedia(account:str, user_name:str, path) -> str:
     pass
+
+
+def gold_rank(account: str, user_name: str, path) -> str:
+    try:
+        user_handler = IniFileReader(
+            project_root=path,
+            subdir_name="City/Personal",
+            file_relative_path="Briefly.info",
+            encoding="utf-8"
+        )
+        user_data = user_handler.read_all()
+    except Exception as e:
+        logger.error(f"读取错误：{str(e)}")
+        return "系统繁忙，请稍后重试！"
+
+    if not user_data:
+        return "当前没有用户金币数据。"
+
+    # 生成有效用户列表（添加调试日志）
+    valid_users = []
+    for acc, info in user_data.items():
+        coin = info.get("coin", 0)
+        valid_users.append((acc, coin))
+
+    sorted_users = sorted(valid_users, key=lambda x: x[1], reverse=True)
+    rank_mapping = {acc: idx + 1 for idx, (acc, _) in enumerate(sorted_users)}
+
+    # 查询用户信息
+    target_user = next((user for user in sorted_users if user[0] == account), None)
+    if not target_user:
+        return f"用户 {user_name}（{account}） 无金币数据，未参与排名。"
+
+    # 计算前 N 名
+    top_users = sorted_users[:constants.RANK_TOP_N]
+    top_info = "\n".join(
+        f"第{idx + 1}名：{acc} 金币：{coin}"
+        for idx, (acc, coin) in enumerate(top_users)
+    )
+
+    # 组装结果
+    result = (
+        f"📊 金币排行榜（前{len(top_users)}名）：\n{top_info}\n\n"
+        f"👤 {user_name}（{account}） 第{rank_mapping[account]}名 金币：{target_user[1]}"
+    )
+    return result
 if __name__ == "__main__":
     pass
