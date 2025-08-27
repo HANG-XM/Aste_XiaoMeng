@@ -1919,7 +1919,7 @@ def shop_menu():
     )
 
 def shop(msg, path) -> str:
-    ITEMS_PER_PAGE = 7  # 每页显示数量
+    ITEMS_PER_PAGE = constants.SHOP_ITEMS_PER_PAGE  # 每页显示数量
 
     def format_price(price: int) -> str:
         """格式化价格：>10000 显示为 X.XXk 格式（保留两位小数）"""
