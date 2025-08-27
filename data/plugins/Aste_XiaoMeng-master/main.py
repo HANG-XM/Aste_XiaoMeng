@@ -3,10 +3,11 @@ from astrbot.api.star import Context, Star, register
 import asyncio
 from astrbot.api import logger
 
-from typing import Callable, Dict, Any
+from typing import Callable, Dict
 import os
 import sys
 from pathlib import Path
+import inspect
 
 current_plugin_path = Path(__file__).resolve()
 # 获取插件根目录（即 model 目录的父目录）
@@ -87,12 +88,26 @@ class XIAOMENG(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
-        """事件处理器"""
+        """极简事件处理器（自动参数匹配版）"""
+        # ---------------------- 预处理上下文参数 ----------------------
         msg = event.get_message_str().strip()  # 去除首尾空格
         user_name = event.get_sender_name()
         user_account = event.get_sender_id()
+        path = self.directory
+        job_manager = self.job_manager
+        fish_manager = self.fish_manager
 
-        # 定义指令与处理函数的映射（直接引用函数，而非lambda）
+        # 上下文参数字典（所有可能的参数）
+        ctx = {
+            "account": user_account,
+            "user_name": user_name,
+            "msg": msg,
+            "path": path,
+            "job_manager": job_manager,
+            "fish_manager": fish_manager,
+        }
+
+        # ---------------------- 指令与处理函数映射（直接引用，无参数） ----------------------
         command_handlers: Dict[str, Callable] = {
             "小梦菜单": city.xm_main,
             "签到": city.check_in,
@@ -134,47 +149,34 @@ class XIAOMENG(Star):
             "金币排行": city.gold_rank,  # 直接引用异步函数
         }
 
-        # 匹配指令（优先完整匹配）
+        # ---------------------- 匹配指令（优先完整匹配） ----------------------
         command = next((cmd for cmd in command_handlers if msg.startswith(cmd)), None)
         if not command:
-            return  # 无匹配指令，不响应
+            return  # 无匹配指令
 
         handler = command_handlers[command]
+
         try:
+            # ---------------------- 自动推断参数并调用（核心逻辑） ----------------------
+            # 获取函数参数签名（自动识别需要哪些参数）
+            sig = inspect.signature(handler)
+            params = sig.parameters
+
+            # 动态生成参数值（按参数名从上下文中取）
+            kwargs = {}
+            for name in params:
+                if name in ctx:
+                    kwargs[name] = ctx[name]
+                else:
+                    # 缺失必要参数时抛出异常（明确提示）
+                    raise ValueError(f"函数 {handler.__name__} 缺少必要参数: {name}")
+
             # 执行函数（同步/异步分离）
             if asyncio.iscoroutinefunction(handler):
-                # 异步函数（无参数，直接 await）
-                if command in ["金币排行"]:
-                    text = await handler(user_account,user_name,self.directory)
+                text = await handler(**kwargs)  # 异步函数用 await
             else:
-                # 同步函数（根据参数数量传递参数）
-                if command in ["小梦菜单", "打工菜单","银行菜单","商店菜单","打劫菜单","钓鱼菜单"]:
-                    # 无参数函数
-                    text = handler()
-                elif command in ["签到", "查询", "取定期","查存款","背包","越狱","出狱","钓鱼"]:
-                    # 3 个参数：account, user_name, path
-                    text = handler(user_account, user_name, self.directory)
-                elif command in ["绑定","存款","取款","还款","贷款","取定期","转账","购买","使用","打劫","保释"]:
-                    # 4 个参数：account, user_name, msg, path
-                    text = handler(user_account, user_name, msg, self.directory)
-                elif command in ["打工", "加班", "跳槽", "辞职", "领工资"]:
-                    # 4 个参数：account, user_name, path, job_data
-                    text = handler(user_account,user_name, self.directory,self.job_manager)
-                elif command in ["找工作", "查工作", "工作池"]:
-                    # 2 个参数：msg, job_data
-                    text = handler(msg,self.job_manager)
-                elif command in ["投简历"]:
-                    # 5 个参数：account, user_name, msg, path, job_data
-                    text = handler(user_account,user_name,msg, self.directory,self.job_manager)
-                elif command in ["商店","查商品"]:
-                    # 2 个参数：msg, path
-                    text = handler(msg, self.directory)
-                elif command in ["提竿"]:
-                    # 2 个参数：msg, path
-                    text = handler(user_account,user_name,msg,self.fish_manager)
-                else:
-                    # 其他情况（根据实际函数补充）
-                    text = handler()
+                text = handler(**kwargs)  # 同步函数直接调用
+
             # 返回结果
             yield event.plain_result(text)
         except Exception as e:

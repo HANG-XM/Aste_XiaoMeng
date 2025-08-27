@@ -23,7 +23,7 @@ def xm_main() -> str:
         f"\n🎣 钓鱼菜单 | 🏆 排行菜单"
         )
 
-def check_in(account,user_name:str,path)->str:
+def check_in(account:str,user_name:str,path)->str:
     """
     签到功能
     :param account: 用户账号
