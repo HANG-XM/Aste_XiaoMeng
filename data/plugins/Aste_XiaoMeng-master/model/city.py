@@ -1874,7 +1874,7 @@ def transfer(account,user_name,msg,path) -> str:
             encoding="utf-8"
         )
         sender_data = bank_manager.read_section(section=account, create_if_not_exists=True)
-        receiver_data = bank_manager.read_section(section=receiver_account, create_if_not_exists=True)
+        receiver_data = bank_manager.read_section(section=target_qq, create_if_not_exists=True)
     except Exception as e:
         logger.error(f"初始化INI文件管理器失败：{str(e)}")
         return "❌ 系统错误：无法加载账户数据，请联系管理员"
@@ -1896,16 +1896,16 @@ def transfer(account,user_name,msg,path) -> str:
     receiver_new_deposit = receiver_deposit + amount
     try:
         bank_manager.update_key(section=account, key="deposit", value=sender_new_deposit)
-        bank_manager.update_key(section=receiver_account, key="deposit", value=receiver_new_deposit)
+        bank_manager.update_key(section=target_qq, key="deposit", value=receiver_new_deposit)
         bank_manager.save(encoding="utf-8")
     except Exception as e:
-        logger.error(f"转账操作失败（发送者：{account}，接收者：{receiver_account}）：{str(e)}")
+        logger.error(f"转账操作失败（发送者：{account}，接收者：{target_qq}）：{str(e)}")
         return f"❌ 系统错误：转账操作失败!"
     # -------------------- 7. 返回详细成功信息（用户友好） --------------------
     return (
         f"✅ 转账成功！\n"
         f"发送者：{user_name}\n"
-        f"接收者：{receiver_account}\n"
+        f"接收者：{target_qq}\n"
         f"转账金额：{amount}\n"
         f"手续费（{constants.TRANSFER_PROCESSING_FEE_RATE * 100}%）：{amount * constants.TRANSFER_PROCESSING_FEE_RATE}金币\n"
         f"发送者原余额：{sender_deposit} → 新余额：{sender_new_deposit} 金币\n"
