@@ -106,7 +106,7 @@ class XIAOMENG(Star):
             "领工资": city.get_paid,
             "找工作": city.job_hunting,
             "查工作": city.check_job,
-            "投简历": city.submit_resume,
+            "投简历":  city.submit_resume,
             "工作池": city.jobs_pool,
             "银行菜单": city.bank_menu,
             "存款": city.deposit,
@@ -134,20 +134,48 @@ class XIAOMENG(Star):
             "金币排行": city.gold_rank,  # 直接引用异步函数
         }
 
-        # 提取指令关键词（优先匹配完整指令，避免部分匹配）
+        # 匹配指令（优先完整匹配）
         command = next((cmd for cmd in command_handlers if msg.startswith(cmd)), None)
         if not command:
-            return
+            return  # 无匹配指令，不响应
 
         handler = command_handlers[command]
         try:
-            # 根据函数类型执行（同步/异步）
+            # 执行函数（同步/异步分离）
             if asyncio.iscoroutinefunction(handler):
-                # 异步函数：传递当前消息的参数并等待执行
-                text = await handler(user_account, user_name, self.directory)
+                # 异步函数（无参数，直接 await）
+                if command in ["金币排行"]:
+                    text = await handler(user_account,user_name,self.directory)
             else:
-                # 同步函数：直接调用（确保函数内部无异步操作）
-                text = handler(user_account, user_name, self.directory)
+                # 同步函数（根据参数数量传递参数）
+                if command in ["小梦菜单", "打工菜单","银行菜单","商店菜单","打劫菜单","钓鱼菜单"]:
+                    # 无参数函数
+                    text = handler()
+                elif command in ["签到", "查询", "取定期","查存款","背包","越狱","出狱","钓鱼"]:
+                    # 3 个参数：account, user_name, path
+                    text = handler(user_account, user_name, self.directory)
+                elif command in ["绑定","存款","取款","还款","贷款","取定期","转账","购买","使用","打劫","保释"]:
+                    # 4 个参数：account, user_name, msg, path
+                    text = handler(user_account, user_name, msg, self.directory)
+                elif command in ["打工", "加班", "跳槽", "辞职", "领工资"]:
+                    # 4 个参数：account, user_name, path, job_data
+                    text = handler(user_account,user_name, self.directory,self.job_manager)
+                elif command in ["找工作", "查工作", "工作池"]:
+                    # 2 个参数：msg, job_data
+                    text = handler(msg,self.job_manager)
+                elif command in ["投简历"]:
+                    # 5 个参数：account, user_name, msg, path, job_data
+                    text = handler(user_account,user_name,msg, self.directory,self.job_manager)
+                elif command in ["商店","查商品"]:
+                    # 2 个参数：msg, path
+                    text = handler(msg, self.directory)
+                elif command in ["提竿"]:
+                    # 2 个参数：msg, path
+                    text = handler(user_account,user_name,msg,self.fish_manager)
+                else:
+                    # 其他情况（根据实际函数补充）
+                    text = handler()
+            # 返回结果
             yield event.plain_result(text)
         except Exception as e:
             logger.error(f"执行指令「{command}」失败: {str(e)}", exc_info=True)
