@@ -1,5 +1,8 @@
 import re
-from typing import Optional,Tuple
+import aiohttp
+import asyncio
+import json
+
 from datetime import datetime
 def is_arabic_digit(text: str) -> bool:
     """判断文本是否仅由 0-9 的阿拉伯数字组成"""
@@ -133,3 +136,63 @@ def get_dynamic_rob_ratio(victim_gold: int) -> float:
         return 0.005   # 0.5%
     else:
         return 0.002  # 0.2%
+
+async def get_qq_nickname(qq_number: str) -> str:
+    """
+    通过 QQ 号获取昵称（基于你提供的接口格式）
+    :param qq_number: QQ 号码（如 "3314562947"）
+    :return: 昵称或错误信息
+    """
+
+    # portraitCallBack({"3314562947":["http://qlogo4.store.qq.com/qzone/3314562947/3314562947/100",2564,-1,0,0,0,"HG",0]})
+    # 假设的第三方接口 URL（需替换为真实接口）
+    url = f"http://users.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?uins={qq_number}"
+
+    # 请求头（模拟浏览器，避免被拦截）
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+    }
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url, headers=headers, timeout=10) as response:
+                # 检查 HTTP 状态码（非 200 表示请求失败）
+                if response.status != 200:
+                    return f"HTTP 请求失败，状态码：{response.status}"
+
+                # 读取响应文本（JSONP 格式）
+                response_text = await response.text()
+
+                # 解析 JSONP：提取括号内的 JSON 数据
+                # 示例响应文本："portraitCallBack({...})"
+                jsonp_prefix = "portraitCallBack("
+                jsonp_suffix = ")"
+                if not (jsonp_prefix in response_text and jsonp_suffix in response_text):
+                    return "无效的 JSONP 响应格式（未找到 portraitCallBack 标记）"
+
+                # 提取并解析 JSON
+                json_str = response_text[len(jsonp_prefix):-len(jsonp_suffix)]
+                data = json.loads(json_str)
+
+                # 检查 QQ 号是否存在于响应中
+                qq_key = str(qq_number)
+                if qq_key not in data:
+                    return f"未找到 QQ 号 {qq_number} 的相关信息"
+
+                # 提取昵称（数组的第6个元素，索引6）
+                user_info = data[qq_key]
+                if len(user_info) < 7:  # 确保数组长度足够（至少7个元素）
+                    return "接口返回数据不完整，无法提取昵称"
+
+                nickname = user_info[6]  # 索引6 是昵称（如 "HG"）
+                return nickname
+
+        except aiohttp.ClientError as e:
+            return f"网络请求异常：{str(e)}"
+        except json.JSONDecodeError:
+            return "解析 JSON 失败，响应格式错误"
+        except IndexError:
+            return "接口返回数组长度不足，无法提取昵称"
+        except Exception as e:
+            return f"未知错误：{str(e)}"

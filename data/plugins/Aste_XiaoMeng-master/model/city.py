@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from .directory import IniFileReader,JobFileHandler,ShopFileHandler,FishFileHandler  # 导入专用读取函数
-from .city_func import is_arabic_digit,get_by_qq,preprocess_date_str,calculate_delta_days,get_dynamic_rob_ratio
+from .city_func import is_arabic_digit,get_by_qq,preprocess_date_str,calculate_delta_days,get_dynamic_rob_ratio,get_qq_nickname
 from . import constants
 
 from astrbot.api import logger
@@ -2821,7 +2821,7 @@ def fishing_encyclopedia(account:str, user_name:str, path) -> str:
     pass
 
 
-def gold_rank(account: str, user_name: str, path) -> str:
+async def gold_rank(account: str, user_name: str, path) -> str:
     try:
         user_handler = IniFileReader(
             project_root=path,
@@ -2837,31 +2837,36 @@ def gold_rank(account: str, user_name: str, path) -> str:
     if not user_data:
         return "当前没有用户金币数据。"
 
-    # 生成有效用户列表（添加调试日志）
-    valid_users = []
-    for acc, info in user_data.items():
-        coin = info.get("coin", 0)
-        valid_users.append((acc, coin))
-
+    # 生成有效用户列表（账号: 金币）
+    valid_users = [(acc, info.get("coin", 0)) for acc, info in user_data.items()]
     sorted_users = sorted(valid_users, key=lambda x: x[1], reverse=True)
     rank_mapping = {acc: idx + 1 for idx, (acc, _) in enumerate(sorted_users)}
 
-    # 查询用户信息
+    # 查询目标用户是否存在
     target_user = next((user for user in sorted_users if user[0] == account), None)
     if not target_user:
         return f"用户 {user_name}（{account}） 无金币数据，未参与排名。"
 
-    # 计算前 N 名
+    # 计算前 N 名（取前 constants.RANK_TOP_N 个用户）
     top_users = sorted_users[:constants.RANK_TOP_N]
-    top_info = "\n".join(
-        f"第{idx + 1}名：{acc} 金币：{coin}"
-        for idx, (acc, coin) in enumerate(top_users)
-    )
 
-    # 组装结果
+    # 异步获取每个用户的昵称并生成排行榜文本（关键修复）
+    top_info_lines = []
+    for idx, (acc, coin) in enumerate(top_users):
+        try:
+            nickname = await get_qq_nickname(acc)  # 等待异步函数返回昵称
+            top_info_lines.append(f"第{idx + 1}名：{nickname} 金币：{coin}")
+        except Exception as e:
+            # 处理昵称获取失败的情况（如记录日志或使用默认值）
+            logger.error(f"获取用户 {acc} 昵称失败：{str(e)}")
+            top_info_lines.append(f"第{idx + 1}名：用户{acc}（昵称获取失败） 金币：{coin}")
+
+    top_info = "\n".join(top_info_lines)  # 拼接所有行
+
+    # 组装最终结果
     result = (
         f"📊 金币排行榜（前{len(top_users)}名）：\n{top_info}\n\n"
-        f"👤 {user_name}（{account}） 第{rank_mapping[account]}名 金币：{target_user[1]}"
+        f"👤 {user_name} 第{rank_mapping[account]}名，金币：{target_user[1]}"
     )
     return result
 if __name__ == "__main__":
