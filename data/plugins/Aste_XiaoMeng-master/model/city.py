@@ -1678,16 +1678,16 @@ def fixed_deposit(account,user_name,msg,path) -> str:
     """
     if not msg.startswith("存定期 "):
         return (f"{user_name}，存定期格式请使用：存定期 金额"
-                f"（例：存定期 {constants.DEPOSIT_MULTIPLE_BASE}）")
+                f"（例：存定期 {constants.FIXED_DEPOSIT_MULTIPLE_BASE}）")
     parts = msg.split()
     if len(parts) < 2:
-        return f"{user_name}，格式不对哦~😢 正确姿势是：存定期 金额（例：存定期 {constants.DEPOSIT_MULTIPLE_BASE}）"
+        return f"{user_name}，格式不对哦~😢 正确姿势是：存定期 金额（例：存定期 {constants.FIXED_DEPOSIT_MULTIPLE_BASE}）"
     try:
         amount = int(parts[1])
     except ValueError:
         return (f"{user_name}，金额必须是整数哦~😢 "
-                f"正确姿势是：存定期 {constants.DEPOSIT_MULTIPLE_BASE}/{constants.DEPOSIT_MULTIPLE_BASE*2}/..."
-                f"（例：存定期 {constants.DEPOSIT_MULTIPLE_BASE}）")
+                f"正确姿势是：存定期 {constants.FIXED_DEPOSIT_MULTIPLE_BASE}/{constants.FIXED_DEPOSIT_MULTIPLE_BASE*2}/..."
+                f"（例：存定期 {constants.FIXED_DEPOSIT_MULTIPLE_BASE}）")
     if amount <= 0:
         return "存定期0个金币可不行~😜 至少存定期1个吧！"
     if amount % constants.FIXED_DEPOSIT_MULTIPLE_BASE != 0:
