@@ -1,7 +1,6 @@
 import math
 import time
 import random
-import re
 from decimal import Decimal, ROUND_HALF_UP  # 引入 Decimal 类型
 from typing import Dict, Any, List, Tuple
 from collections import defaultdict
@@ -222,7 +221,7 @@ def bind(account: str, user_name: str, msg: str, path) ->str:
     """处理绑定《逃跑吧少年》手游账号的请求（优化版）"""
     # -------------------- 命令格式验证 --------------------
     if not msg.startswith("绑定 "):
-        return "支持绑定《逃跑吧少年》手游账号\n绑定方法：绑定 游戏ID\n提示：一人仅支持绑定一次！"
+        return f"{user_name} 支持绑定《逃跑吧少年》手游账号\n绑定方法：绑定 游戏ID\n提示：一人仅支持绑定一次！"
 
     # 提取并验证游戏ID格式（示例：6位数字）
     parts = msg.split(maxsplit=1)
@@ -716,11 +715,11 @@ def get_paid(account,user_name,path,job_manager:JobFileHandler) -> str:
     )
 
 def resign(account,user_name,path,job_manager:JobFileHandler) -> str:
-    def work_clear(account: str, work_manager: IniFileReader) -> None:
+    def work_clear(account_id: str, manager: IniFileReader) -> None:
         """
         清除指定用户的工作数据（重置为初始状态）
-        :param account: 用户账号
-        :param work_manager: 工作数据管理器
+        :param account_id: 用户账号
+        :param manager: 工作数据管理器
         """
         initial_data = {
             "job_id": 0,
@@ -731,7 +730,7 @@ def resign(account,user_name,path,job_manager:JobFileHandler) -> str:
             "work_count": 0,
             "overtime_count": 0
         }
-        work_manager.update_section_keys(account, initial_data)
+        manager.update_section_keys(account_id, initial_data)
 
     # ---------------------- 随机提示语库 ----------------------
 
@@ -1582,7 +1581,6 @@ def repayment(account,user_name,msg,path) -> str:
     :return: 操作结果提示信息
     """
     # -------------------- 常量定义 --------------------
-    MIN_REPAYMENT = 1  # 最小还款金额（1 金币）
     if not msg.startswith("还款 "):
         f"{constants.ERROR_PREFIX}\n还款格式请使用：还款 金额（例：还款 {constants.DEPOSIT_MULTIPLE_BASE}）"
     parts = msg.split()
@@ -1593,7 +1591,7 @@ def repayment(account,user_name,msg,path) -> str:
     except ValueError:
         return f"{constants.ERROR_PREFIX}\n金额必须是有效的整数（例：{constants.DEPOSIT_MULTIPLE_BASE}）"
     if amount <= 0:
-        return f"{constants.ERROR_PREFIX}\n还款金额不能少于{MIN_REPAYMENT}金币！"
+        return f"{constants.ERROR_PREFIX}\n还款金额不能少于0金币！"
     try:
         user_manager = IniFileReader(
             project_root=path,
@@ -1862,16 +1860,11 @@ def transfer(account,user_name,msg,path) -> str:
     # -------------------- 1. 输入格式校验（修正正则匹配） --------------------
     if not msg.startswith("转账 "):
         return f"❌ 转账正确格式：转账 金额@对象（示例：转账 {constants.DEPOSIT_MULTIPLE_BASE}@小梦）"
-    content = msg
-    # 正则表达式：同时匹配两个数字
-    transfer_pattern = r'^转账 (\d+)\[at:(\w+)\]$'
-    match = re.match(transfer_pattern, msg.strip())
-    if not match:
-        return f"❌ 转账格式错误。正确格式：转账 金额@对象（示例：转账 {constants.DEPOSIT_MULTIPLE_BASE}@小梦）"
-    amount = int(match.group(1))  # 提取金额（整数）
+    amount,target_qq=get_by_qq(msg)
     if amount % constants.DEPOSIT_MULTIPLE_BASE != 0:
         return f"{user_name}，存定期金额必须是{constants.DEPOSIT_MULTIPLE_BASE}的整数倍哦~😢 "
-    receiver_account = match.group(2)  # 提取接收者账户（INI的section名）
+    if not target_qq:
+        return "请确认转账对象！正确格式：转账 金额@对象（示例：转账 {constants.DEPOSIT_MULTIPLE_BASE}@小梦）"
     # -------------------- 2. 初始化INI文件管理器（含异常处理） --------------------
     try:
         bank_manager = IniFileReader(
@@ -1930,7 +1923,7 @@ def shop_menu():
         f"\n🛠️ 使用：使用背包里的道具"
     )
 
-def shop(account, user_name, msg, path) -> str:
+def shop(msg, path) -> str:
     ITEMS_PER_PAGE = 7  # 每页显示数量
 
     def format_price(price: int) -> str:
@@ -2212,12 +2205,10 @@ def basket(account: str, user_name: str, path) -> str:
     else:
         return "你的购物篮里暂时没有可用物品～快去商店看看吧！🛍️"
 
-def check_goods(account:str, user_name:str, msg:str, path):
+def check_goods( msg:str, path):
     """
     查询商品详细信息（优化版，增强健壮性与用户体验）
 
-    :param account: 用户账号
-    :param user_name: 用户昵称（未使用，保留参数兼容）
     :param msg: 用户输入消息（如"查商品 小心心"）
     :param path: 项目根路径
     :return: 商品信息描述或错误提示
@@ -2373,7 +2364,6 @@ def use(account,user_name,msg,path) -> str:
                 file_relative_path="Fish.data",
                 encoding="utf-8",
             )
-            fish_data = fish_manager.read_section(section=account, create_if_not_exists=True)
         except Exception as e:
             logger.error(f"初始化用于钓鱼系统数据错误：{str(e)}")
             return "系统繁忙，请稍后重试"
@@ -2823,74 +2813,11 @@ def my_creel(account:str, user_name:str, path) -> str:
     except Exception as e:
         logger.error(f"释放用户 {account} 失败: {e}")
         return "出狱过程中发生错误，请联系管理员。"
-    pass
 
 def my_pond(account:str, user_name:str, path) -> str:
-    """手动释放用户（出狱）"""
-    try:
-        rob_manager = IniFileReader(
-            project_root=path, subdir_name="City/Record", file_relative_path="Rob.data", encoding="utf-8"
-        )
-        # 检测当前入狱状态（可选）
-        current_jail_time = rob_manager.read_key(section=account, key="jail_time",default=0)
-        if current_jail_time <= 0:
-            return f"{user_name} 你未入狱，无需出狱！"
-        # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
-        if current_jail_time + constants.JAIL_TIME > time.time():
-            remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
-            return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
-
-        user_manager = IniFileReader(
-            project_root=path,subdir_name="City/Personal",file_relative_path="Briefly.info",encoding="utf-8"
-        )
-        user_stamina =user_manager.read_key(section=account, key="stamina",default=0)
-        if user_stamina < constants.RELEASED_STAMINA:
-            return f"{user_name} 体力不足，休息一会再出狱吧！"
-        new_stamina = user_stamina - constants.RELEASED_STAMINA
-        user_manager.update_key(section=account, key="stamina", value=new_stamina)
-        user_manager.save(encoding="utf-8")
-        # 清除入狱时间（设置为0表示未入狱）
-        rob_manager.update_key(section=account, key="jail_time", value=0)
-        rob_manager.save(encoding="utf-8")
-        # 可选：同步其他状态（如体力、金币）
-        return f"用户 {user_name} 已成功出狱！"
-    except Exception as e:
-        logger.error(f"释放用户 {account} 失败: {e}")
-        return "出狱过程中发生错误，请联系管理员。"
     pass
 
 def fishing_encyclopedia(account:str, user_name:str, path) -> str:
-    """手动释放用户（出狱）"""
-    try:
-        rob_manager = IniFileReader(
-            project_root=path, subdir_name="City/Record", file_relative_path="Rob.data", encoding="utf-8"
-        )
-        # 检测当前入狱状态（可选）
-        current_jail_time = rob_manager.read_key(section=account, key="jail_time",default=0)
-        if current_jail_time <= 0:
-            return f"{user_name} 你未入狱，无需出狱！"
-        # 正确判断：入狱开始时间 + 刑期 > 当前时间 → 未服完刑
-        if current_jail_time + constants.JAIL_TIME > time.time():
-            remaining = int(current_jail_time + constants.JAIL_TIME - time.time())
-            return f"{user_name} 未到出狱时间，还需服刑 {remaining} 秒！"
-
-        user_manager = IniFileReader(
-            project_root=path,subdir_name="City/Personal",file_relative_path="Briefly.info",encoding="utf-8"
-        )
-        user_stamina =user_manager.read_key(section=account, key="stamina",default=0)
-        if user_stamina < constants.RELEASED_STAMINA:
-            return f"{user_name} 体力不足，休息一会再出狱吧！"
-        new_stamina = user_stamina - constants.RELEASED_STAMINA
-        user_manager.update_key(section=account, key="stamina", value=new_stamina)
-        user_manager.save(encoding="utf-8")
-        # 清除入狱时间（设置为0表示未入狱）
-        rob_manager.update_key(section=account, key="jail_time", value=0)
-        rob_manager.save(encoding="utf-8")
-        # 可选：同步其他状态（如体力、金币）
-        return f"用户 {user_name} 已成功出狱！"
-    except Exception as e:
-        logger.error(f"释放用户 {account} 失败: {e}")
-        return "出狱过程中发生错误，请联系管理员。"
     pass
 if __name__ == "__main__":
     pass
