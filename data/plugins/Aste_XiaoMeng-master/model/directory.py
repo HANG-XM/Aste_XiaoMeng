@@ -276,6 +276,8 @@ class JobFileHandler:
             raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
 
     def update_data(self, key: str, value: Any) -> None:
+        if "." not in key:
+            raise ValueError("Key must contain at least one '.' separator")
         keys = key.split(".")
         current = self.data
         for i, k in enumerate(keys[:-1]):
