@@ -155,7 +155,7 @@ class IniFileReader:
 
             finally:
                 # 确保临时文件句柄关闭（避免资源泄漏）
-                if temp_file:
+                if temp_file and not temp_file.closed:
                     temp_file.close()
 
     @staticmethod
