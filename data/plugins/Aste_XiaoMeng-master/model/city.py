@@ -2767,8 +2767,15 @@ def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler)
         logger.error(f"保存数据错误：{str(e)}", exc_info=True)
         return "系统繁忙！请稍后重试"
 
-    if user_fish_data.get("end_min") < now_time or now_time > user_fish_data.get("end_max"):
-        return "时间不对，下次再早点或晚点吧，钓鱼失败！"
+    start_time = user_fish_data.get("start_time", 0)  # 新增：假设存储了允许的最早开始时间（时间戳）
+    end_time = user_fish_data.get("end_time", 0)      # 新增：假设存储了允许的最晚结束时间（时间戳）
+    # 检查时间是否在有效区间（原逻辑保留，新增偏差计算）
+    if now_time < start_time:
+        delay_seconds = int(start_time - now_time)  # 计算早到秒数
+        return f"{user_name} 你来得太早啦！当前时间还早 {delay_seconds} 秒，下次耐心等等~"
+    elif now_time > end_time:
+        delay_seconds = int(now_time - end_time)    # 计算晚到秒数
+        return f"{user_name} 你来得太晚啦！钓鱼时间已结束 {delay_seconds} 秒前，下次早点来~"
 
     user_bait = user_fish_data.get("current_bait")
     random_fish = fish_manager.get_random_fish_by_bait(user_bait)
