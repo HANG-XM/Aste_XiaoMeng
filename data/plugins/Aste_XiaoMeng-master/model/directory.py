@@ -1,6 +1,7 @@
 import json
 import configparser
 import math
+import time
 from pathlib import Path
 from difflib import get_close_matches
 import random
@@ -936,3 +937,206 @@ class FishFileHandler:
             return None
 
         return random.choice(matching_fishes)
+
+class UnifiedCreelManager:
+    def __init__(self, save_dir: Path):
+        """
+        初始化统一渔获数据管理器
+
+        :param save_dir: 数据保存根目录（如 Path("City/Record")）
+        """
+        self.save_dir = save_dir
+        self.lock_path = self.save_dir / ".unified_creel.lock"  # 统一文件锁
+        self.data_file = self.save_dir / "AllCreels.json"
+        self.save_dir.mkdir(parents=True, exist_ok=True)
+
+    def _load_data(self) -> Dict[str, Dict]:
+        """加载统一文件数据（顶层为字典：{account: user_data}）"""
+        if not self.data_file.exists():
+            return {}  # 默认空字典（无用户数据）
+        try:
+            with open(self.data_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(f"JSON解析失败（文件: {self.data_file}）: {e.msg}", e.doc, e.pos) from e
+        except Exception as e:
+            raise RuntimeError(f"读取数据文件失败（文件: {self.data_file}）: {str(e)}") from e
+
+    def _save_data(self, data: Dict[str, Dict]) -> bool:
+        """原子化保存统一文件数据（顶层为字典：{account: user_data}）"""
+        lock = FileLock(self.lock_path, timeout=5)
+        with lock:
+            with open(self.data_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        return True
+
+    def add_fish_weight(
+            self,
+            account: str,
+            fish_name: str,
+            weight: float,
+    ) -> bool:
+        """
+        新增鱼的重量数据（自动处理用户记录创建/更新）
+
+        :param account: 用户账号（如 "user123"）
+        :param fish_name: 鱼名（如 "鲫鱼"）
+        :param weight: 新增重量（必须为正数）
+        :return: 操作是否成功
+        :raises ValueError: 重量参数无效时抛出
+        """
+        # 参数校验
+        if not isinstance(weight, (int, float)) or weight <= 0:
+            raise ValueError(f"无效重量值：{weight}（必须为正数）")
+
+        # 加载现有数据（顶层字典）
+        data = self._load_data()
+
+        # 获取或初始化用户数据（直接通过账号键访问）
+        user_data = data.get(account)
+        if not user_data:
+            user_data = {"fish_records": []}
+            data[account] = user_data  # 新增用户到字典
+
+        # 查找或创建鱼记录
+        fish_record = next(
+            (fr for fr in user_data["fish_records"] if fr["fish_name"] == fish_name),
+            None
+        )
+        if not fish_record:
+            # 新增鱼记录（移除 unit 字段）
+            user_data["fish_records"].append({
+                "fish_name": fish_name,
+                "weights": [weight]
+            })
+        else:
+            # 追加重量
+            fish_record["weights"].append(weight)
+
+        # 保存数据（可能抛出异常）
+        self._save_data(data)
+        return True
+
+    def get_fish_records(self, account: str, fish_name: str) -> List[Dict]:
+        """获取指定鱼的完整记录（仅保留重量）"""
+        data = self._load_data()
+        user_data = data.get(account)
+        if not user_data:
+            return []  # 用户不存在时返回空列表
+
+        records = []
+        for record in user_data["fish_records"]:
+            if record["fish_name"] == fish_name:
+                records.append({
+                    "fish_name": record["fish_name"],
+                    "weights": record["weights"],
+                    "count": len(record["weights"]),
+                    "total_weight": sum(record["weights"])
+                })
+        return records
+
+    def get_user_summary(self, account: str) -> Dict:
+        """获取用户渔获概览"""
+        data = self._load_data()
+        user_data = data.get(account)
+        if not user_data:
+            raise ValueError(f"用户 {account} 不存在")
+
+        summary = {
+            "account": account,
+            "total_catches": 0,
+            "total_weight": 0.0,
+            "fish_types": len(user_data["fish_records"])
+        }
+
+        for record in user_data["fish_records"]:
+            total_weight = sum(record["weights"])
+            summary["total_catches"] += len(record["weights"])
+            summary["total_weight"] += total_weight
+
+        return summary
+
+    def calculate_total_amount(
+            self,
+            account: str,
+            fish_name: str,
+            average_price: int,  # 平均价格（元/重量单位）
+            average_weight: float  # 平均重量（重量单位，如kg）
+    ) -> int:
+        """
+        计算指定用户某条鱼的总金额（公式：总金额 =（总重量 ÷ 平均重量）× 平均价格，最终取整）
+
+        :param account: 用户账号（如 "user123"）
+        :param fish_name: 鱼名（如 "鲫鱼"）
+        :param average_price: 该鱼的平均价格（如 15 元/kg）
+        :param average_weight: 该鱼的平均重量（如 2.5 kg）
+        :return: 总金额（元，取整后）
+        :raises ValueError: 用户/鱼不存在、平均重量无效或无重量数据时抛出
+        """
+        # 加载用户数据
+        data = self._load_data()
+        user_data = data.get(account)
+        if not user_data:
+            raise ValueError(f"用户 {account} 不存在")
+
+        # 查找鱼记录
+        fish_record = next(
+            (fr for fr in user_data["fish_records"] if fr["fish_name"] == fish_name),
+            None
+        )
+        if not fish_record:
+            raise ValueError(f"用户 {account} 不存在鱼 {fish_name}")
+
+        # 获取该鱼的所有重量数据
+        fish_weights = fish_record["weights"]
+        if not fish_weights:
+            raise ValueError(f"用户 {account} 的 {fish_name} 无重量记录")
+
+        # 计算总重量
+        total_weight = sum(fish_weights)
+
+        # 避免除以0（平均重量为0时无意义）
+        if average_weight <= 0:
+            raise ValueError(f"平均重量 {average_weight} 不能为0或负数")
+
+        # 计算数量（总重量 ÷ 平均重量）
+        quantity = total_weight / average_weight
+
+        # 计算总金额（数量 × 平均价格）
+        total_amount = quantity * average_price
+
+        # 取整（四舍五入到整数）
+        return round(total_amount)
+
+    def delete_fish(
+            self,
+            account: str,
+            fish_name: str
+    ) -> bool:
+        """
+        删除指定用户下的某条鱼记录
+
+        :param account: 用户账号（如 "user123"）
+        :param fish_name: 鱼名（如 "鲫鱼"）
+        :return: 是否删除成功
+        :raises ValueError: 用户/鱼不存在时抛出
+        """
+        data = self._load_data()
+        user_data = data.get(account)
+        if not user_data:
+            raise ValueError(f"用户 {account} 不存在")
+
+        # 查找并删除鱼记录
+        fish_index = next(
+            (i for i, fr in enumerate(user_data["fish_records"]) if fr["fish_name"] == fish_name),
+            -1
+        )
+        if fish_index == -1:
+            raise ValueError(f"用户 {account} 不存在鱼 {fish_name}")
+
+        # 执行删除
+        del user_data["fish_records"][fish_index]
+
+        # 保存修改（可能抛出异常）
+        self._save_data(data)
+        return True

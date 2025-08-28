@@ -5,8 +5,9 @@ from decimal import Decimal, ROUND_HALF_UP  # 引入 Decimal 类型
 from typing import Dict, Any, List, Tuple
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
-from .directory import IniFileReader,JobFileHandler,ShopFileHandler,FishFileHandler  # 导入专用读取函数
+from .directory import IniFileReader,JobFileHandler,ShopFileHandler,FishFileHandler,CreelDataManager  # 导入专用读取函数
 from .city_func import is_arabic_digit,get_by_qq,preprocess_date_str,calculate_delta_days,get_dynamic_rob_ratio,get_qq_nickname
 from . import constants
 
@@ -2773,7 +2774,6 @@ def lift_rod(account:str, user_name:str, path,fish_manager:FishFileHandler) -> s
     user_fish = fish_manager.get_random_fish_by_bait(user_bait)
     # 已经确定只有一个键值对
     fish_name,fish_data =user_fish.items()
-    fish_weight = fish_data["weight"]
     return f"好耶！{user_name}钓到了{fish_name}让我们恭喜TA吧！"
 
 def my_creel(account:str, user_name:str, path) -> str:
