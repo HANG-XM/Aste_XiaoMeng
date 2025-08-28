@@ -2805,15 +2805,48 @@ def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler)
     return f"好耶！{user_name}钓到了{final_weight}斤重的{fish_name}让我们恭喜TA吧！"
 
 def my_creel(account:str, user_name:str, path) -> str:
-    creel_manager = UnifiedCreelManager(
+    """
+    查看用户渔获概览（总次数、总重量、各鱼种重量）
+
+    :param account: 用户账号（如 "user123"）
+    :param user_name: 用户昵称（如 "小明"）
+    :param path: 数据保存根目录（Path 对象）
+    :return: 渔获信息字符串（含友好提示）
+    """
+    try:
+        # 初始化渔获管理器并获取用户概览
+        creel_manager = UnifiedCreelManager(
             save_dir=path,
             subdir="City/Record",
             data_filename="Creel.json"
         )
-    user_data = creel_manager.get_user_summary(account=account)
+        user_summary = creel_manager.get_user_summary(account=account)
 
+    except ValueError as e:
+        # 用户不存在时返回提示
+        return f"⚠️ {user_name}，查询失败：{str(e)}"
 
-    pass
+    # 构建基础信息字符串
+    base_info = [
+        f"🎣 {user_name} 的渔获概览",
+        f"——————————",
+        f"总捕获次数：{user_summary['total_catches']} 次",
+        f"总重量：{user_summary['total_weight']} 斤",  # 假设单位是“斤”，可根据实际调整
+        f"鱼的种类：{user_summary['fish_types']} 种"
+    ]
+
+    # 处理无渔获记录的情况
+    if user_summary["fish_types"] == 0:
+        base_info.append("当前还没有钓到任何鱼哦~ 快去钓鱼吧！")
+        return "\n".join(base_info)
+
+    # 拼接各鱼种重量详情
+    fish_details = ["\n各鱼种重量统计："]
+    for fish_name, total in user_summary["fish_weights"].items():
+        fish_details.append(f"  • {fish_name}：{total} 斤")  # 同样假设单位是“斤”
+
+    # 合并所有信息并返回
+    return "\n".join(base_info + fish_details)
 
 def my_pond(account:str, user_name:str, path) -> str:
     pass
