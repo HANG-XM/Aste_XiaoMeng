@@ -939,16 +939,29 @@ class FishFileHandler:
         return random.choice(matching_fishes)
 
 class UnifiedCreelManager:
-    def __init__(self, save_dir: Path):
+    def __init__(
+        self,
+        save_dir: Path,
+        *,
+        subdir: Optional[str] = None,          # 新增：次级目录（可选）
+        data_filename: str = "AllCreels.json"  # 新增：自定义数据文件名（默认不变）
+    ):
         """
-        初始化统一渔获数据管理器
+        初始化统一渔获数据管理器（支持自定义目录和文件名）
 
         :param save_dir: 数据保存根目录（如 Path("City/Record")）
+        :param subdir: 次级目录（可选，如 "fish_records"，会在 save_dir 下创建该子目录）
+        :param data_filename: 数据文件名（默认 "AllCreels.json"，自定义如 "my_fish.json"）
         """
         self.save_dir = save_dir
-        self.lock_path = self.save_dir / ".unified_creel.lock"  # 统一文件锁
-        self.data_file = self.save_dir / "AllCreels.json"
-        self.save_dir.mkdir(parents=True, exist_ok=True)
+        # 构建实际保存目录（根目录 + 次级目录）
+        self.actual_save_dir = self.save_dir / subdir if subdir else self.save_dir
+        # 自定义文件锁路径（与数据文件同目录）
+        self.lock_path = self.actual_save_dir / ".unified_creel.lock"
+        # 自定义数据文件路径
+        self.data_file = self.actual_save_dir / data_filename
+        # 创建目录（含次级目录）
+        self.actual_save_dir.mkdir(parents=True, exist_ok=True)
 
     def _load_data(self) -> Dict[str, Dict]:
         """加载统一文件数据（顶层为字典：{account: user_data}）"""

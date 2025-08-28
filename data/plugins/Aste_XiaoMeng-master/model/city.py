@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from .directory import IniFileReader,JobFileHandler,ShopFileHandler,FishFileHandler,CreelDataManager  # 导入专用读取函数
+from .directory import IniFileReader,JobFileHandler,ShopFileHandler,FishFileHandler,UnifiedCreelManager  # 导入专用读取函数
 from .city_func import is_arabic_digit,get_by_qq,preprocess_date_str,calculate_delta_days,get_dynamic_rob_ratio,get_qq_nickname
 from . import constants
 
@@ -2729,7 +2729,7 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
         f"请耐心等待 {end_min}-{end_max} 秒后发送【提竿】获取渔获！"
     )
 
-def lift_rod(account:str, user_name:str, path,fish_manager:FishFileHandler) -> str:
+def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler) -> str:
     try:
         use_data_manager = IniFileReader(
             project_root=path,
@@ -2771,10 +2771,34 @@ def lift_rod(account:str, user_name:str, path,fish_manager:FishFileHandler) -> s
         return "时间不对，下次再早点或晚点吧，钓鱼失败！"
 
     user_bait = user_fish_data.get("current_bait")
-    user_fish = fish_manager.get_random_fish_by_bait(user_bait)
-    # 已经确定只有一个键值对
-    fish_name,fish_data =user_fish.items()
-    return f"好耶！{user_name}钓到了{fish_name}让我们恭喜TA吧！"
+    random_fish = fish_manager.get_random_fish_by_bait(user_bait)
+
+    if not random_fish:
+        return "没有找到匹配该鱼饵的鱼。"
+
+    # 提取鱼名和详细信息
+    fish_name = next(iter(random_fish.keys()))  # 获取鱼名（如 "鲫鱼"）
+    base_weight = random_fish[fish_name]["weight"]  # 获取鱼的重量信息
+
+    # 计算浮动范围（±20%）并生成随机重量（核心逻辑）
+    min_weight = base_weight * 0.8  # 最小重量：基准的 80%
+    max_weight = base_weight * 1.2  # 最大重量：基准的 120%
+    random_weight = random.uniform(min_weight, max_weight)  # 生成随机浮点数
+    final_weight = round(random_weight, 1)  # 保留一位小数（如 2.3kg、5.6kg）
+
+    creel_manager = UnifiedCreelManager(
+            save_dir=path,
+            subdir="City/Record",
+            data_filename="Creel.json"
+        )
+
+    creel_manager.add_fish_weight(
+        account=account,
+        fish_name=fish_name,
+        weight=final_weight,
+    )
+
+    return f"好耶！{user_name}钓到了{final_weight}斤重的{fish_name}让我们恭喜TA吧！"
 
 def my_creel(account:str, user_name:str, path) -> str:
     pass
