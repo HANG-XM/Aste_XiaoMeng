@@ -2805,6 +2805,9 @@ def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler)
         weight=final_weight,
     )
 
+    user_fish_manager.update_key(section=account,key="is_fishing",value=False)
+    user_fish_manager.save(encoding="utf-8")
+
     return f"好耶！{user_name}钓到了{final_weight}斤重的{fish_name}让我们恭喜TA吧！"
 
 def my_creel(account:str, user_name:str, path) -> str:
