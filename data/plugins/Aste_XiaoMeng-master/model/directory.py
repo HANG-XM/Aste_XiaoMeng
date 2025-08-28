@@ -420,25 +420,23 @@ class JobFileHandler:
         :return: 匹配度得分（越高越相关）
         """
         score = 0
-        max_possible = sum(len(kw) for kw in keywords)  # 关键词总长度（上限）
+        max_possible = sum(len(kw) for kw in keywords)
 
-        # 规则1：关键词完全匹配（顺序无关）
-        for kw in keywords:
+        # 规则1：完全匹配关键词（按出现次数加权）
+        keyword_counts = Counter(keywords)
+        for kw, count in keyword_counts.items():
             if kw in job_name:
-                # 匹配长度占比（避免短关键词匹配长名称）
-                ratio = len(kw) / len(job_name)
-                score += int(ratio * 100)  # 转换为百分制得分
+                score += (job_name.count(kw) * len(kw))  # 按出现次数和长度加权
 
-        # 规则2：关键词顺序匹配（连续出现关键词组合）
+        # 规则2：连续关键词匹配（严格顺序匹配）
         combined_kw = "".join(keywords)
         if combined_kw in job_name:
-            score += 200  # 额外加分（强化连续匹配的重要性）
+            score += 300  # 连续匹配高权重
 
-        # 规则3：首词匹配（关键词出现在职位名称开头）
-        if keywords[0] in job_name[:len(keywords[0]) + 5]:  # 允许前后5字符容错
-            score += 100
+        # 规则3：首词匹配（严格开头匹配）
+        if keywords[0] == job_name[:len(keywords[0])]:
+            score += 200
 
-        # 限制最高得分（避免极端情况）
         return min(score, 1000)
 
     def get_promote_num(self, job_id: str) -> int:
