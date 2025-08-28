@@ -327,30 +327,16 @@ class JobFileHandler:
                  无有效数据时返回空列表
         """
         all_jobs = []
-
-        # 遍历所有专业系列（如 "10"/"20" 等）
         for major_series in self.data.values():
-            # 防御性编程：确保每个系列都是字典
             if not isinstance(major_series, dict):
                 continue
-
-            # 遍历当前系列下的所有职位
             for job_info in major_series.values():
-                # 确保职位信息是字典类型
                 if not isinstance(job_info, dict):
                     continue
-
-                # 提取并清洗数据
-                job_name = job_info.get("jobName", "").strip()
-                company = job_info.get("company", "").strip()
-
-                # 过滤无效数据（无职位名称或公司信息）
-                if job_name and company:
-                    all_jobs.append({
-                        "jobName": job_name,
-                        "company": company
-                    })
-
+                job_name = job_info.get("jobName")
+                company = job_info.get("company")
+                if job_name and company:  # 提前合并判断
+                    all_jobs.append({"jobName": job_name.strip(), "company": company.strip()})
         return all_jobs
 
     def get_job_info(self, job_id: str) -> Dict[str, Any]:
