@@ -2662,11 +2662,11 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
     # 校验鱼竿是否存在
     user_rod = fish_data.get("current_rod")
     if not user_rod:
-        return f"{user_name} 当前未使用鱼竿"
+        return f"{user_name} 当前未使用鱼竿\n发送'使用 鱼竿名'确定使用的鱼竿\n鱼竿可以前往'商店 鱼竿'进行购买"
     # 校验鱼饵是否存在
     user_bait = fish_data.get("current_bait")
     if not user_bait:
-        return f"{user_name} 当前未使用鱼饵"
+        return f"{user_name} 当前未使用鱼饵\n发送'使用 鱼饵名'确定使用的鱼饵\n鱼饵可以前往'商店 鱼饵'进行购买"
 
     # -------------------- 步骤3：读取购物篮数据（耐久/数量） --------------------
     try:
@@ -2718,9 +2718,9 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
     # -------------------- 步骤6：返回成功提示 --------------------
     return (
         f"{user_name} 抛竿成功！\n"
-        f"当前鱼竿：{user_rod}（剩余耐久：{current_rod_endurance - 1}）\n"
-        f"当前鱼饵：{user_bait}（剩余数量：{current_bait_amount - 1}）\n"
-        f"请耐心等待 {end_min}-{end_max} 秒后发送【提竿】获取渔获！"
+        f"鱼竿：{user_rod}（耐久：{current_rod_endurance}）\n"
+        f"鱼饵：{user_bait}（数量：{current_bait_amount - 1}）\n"
+        f"请等待 {end_min}-{end_max} 秒后发送【提竿】获取渔获！"
     )
 
 def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler) -> str:
@@ -2751,7 +2751,7 @@ def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler)
 
     # 减少体力
     if user_stamina < constants.FISH_STAMINA:
-        return "体力不足，无法提竿"
+        return "体力不足，无法'提竿'"
 
     try:
         new_stamina = user_stamina - constants.FISH_STAMINA
@@ -2761,8 +2761,8 @@ def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler)
         logger.error(f"保存数据错误：{str(e)}", exc_info=True)
         return "系统繁忙！请稍后重试"
 
-    start_time = user_fish_data.get("start_time", 0)  # 新增：假设存储了允许的最早开始时间（时间戳）
-    end_time = user_fish_data.get("end_time", 0)      # 新增：假设存储了允许的最晚结束时间（时间戳）
+    start_time = user_fish_data.get("end_min", 0)  # 新增：假设存储了允许的最早开始时间（时间戳）
+    end_time = user_fish_data.get("end_max", 0)      # 新增：假设存储了允许的最晚结束时间（时间戳）
     # 检查时间是否在有效区间（原逻辑保留，新增偏差计算）
     if now_time < start_time:
         delay_seconds = int(start_time - now_time)  # 计算早到秒数
@@ -2830,7 +2830,7 @@ def my_creel(account:str, user_name:str, path) -> str:
     base_info = [
         f"🎣 {user_name} 的渔获概览",
         f"——————————",
-        f"总捕获次数：{user_summary['total_catches']} 次",
+        f"总捕获：{user_summary['total_catches']} 次",
         f"总重量：{user_summary['total_weight']} 斤",  # 假设单位是“斤”，可根据实际调整
         f"鱼的种类：{user_summary['fish_types']} 种"
     ]
