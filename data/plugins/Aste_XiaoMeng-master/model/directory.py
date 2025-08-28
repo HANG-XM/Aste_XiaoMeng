@@ -105,8 +105,9 @@ class IniFileReader:
         """
         if not self.config.has_section(section):
             self.config.add_section(section)
-        for key, value in data.items():
-            self.update_key(section, key, value)
+        # 构建临时字典，减少多次 set 操作
+        temp_dict = {key: self._convert_to_ini_string(value) for key, value in data.items()}
+        self.config[section].update(temp_dict)
 
     def save(self, encoding: Optional[str] = None) -> None:
         """
