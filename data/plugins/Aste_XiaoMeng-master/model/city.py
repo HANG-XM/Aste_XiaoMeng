@@ -902,7 +902,6 @@ def jobs_pool(msg: str,job_manager:JobFileHandler) -> str:
     2. "工作池 X"（X为正整数）：分页显示所有职位（含当前页、总页数、总职位数）。
     3. "工作池 公司名"：显示指定公司的所有职位（无需分页）。
     :param msg: 指令字符串（如"工作池"、"工作池 1"、"工作池 腾讯"）
-    :param path:
     :param job_manager
     :return: 格式化后的职位信息字符串
     """
@@ -1834,13 +1833,9 @@ def check_deposit(account,user_name,path) -> str:
 
     # -------------------- 优化提示信息 --------------------
     # 友好开头
-    result_msg = [f"📊 {user_name}，您的账户信息查询结果："]
-    # 活期存款（明确标注）
-    result_msg.append(f"✅ 活期存款：{current_deposit} 金币")
-    result_msg.append(f"💰 当前贷款：{current_loan} 金币")
-    result_msg.append(f"📅 定期存款：{current_fixed_deposit} 金币")
-    # 温馨提示结尾
-    result_msg.append("如有任何疑问，欢迎随时联系客服小助手~❤️")
+    result_msg = [f"📊 {user_name}，您的账户信息查询结果：", f"✅ 活期存款：{current_deposit} 金币",
+                  f"💰 当前贷款：{current_loan} 金币", f"📅 定期存款：{current_fixed_deposit} 金币",
+                  "如有任何疑问，欢迎随时联系客服小助手~❤️"]
 
     return "\n".join(result_msg)
 
@@ -1920,7 +1915,6 @@ def shop_menu():
     )
 
 def shop(msg, path) -> str:
-    ITEMS_PER_PAGE = constants.SHOP_ITEMS_PER_PAGE  # 每页显示数量
 
     def format_price(price: int) -> str:
         """格式化价格：>10000 显示为 X.XXk 格式（保留两位小数）"""
@@ -1955,12 +1949,12 @@ def shop(msg, path) -> str:
     # ====================== 模式一：总览 ======================
     if not param:
         total_items = len(shop_handler.data)
-        total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
+        total_pages = (total_items +  constants.SHOP_ITEMS_PER_PAGE - 1) //  constants.SHOP_ITEMS_PER_PAGE
         return (
             f"📦 小梦商店总览\n"
             f"总商品数：{total_items} 件\n"
             f"总页数：{total_pages} 页\n"
-            f"每页显示 {ITEMS_PER_PAGE} 件\n"
+            f"每页显示 {constants.SHOP_ITEMS_PER_PAGE} 件\n"
             f"类别：游戏/礼物/鱼竿/鱼饵/体力/经验\n"
             f"指令：'商店 X' X为类别/页数\n"
             f"其他指令：购买/查商品/背包/使用"
@@ -1970,7 +1964,7 @@ def shop(msg, path) -> str:
     if param.isdigit():
         page = int(param)
         total_items = len(shop_handler.data)
-        total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
+        total_pages = (total_items +  constants.SHOP_ITEMS_PER_PAGE - 1) //  constants.SHOP_ITEMS_PER_PAGE
 
         # 页码有效性检查
         if page < 1:
@@ -1979,8 +1973,8 @@ def shop(msg, path) -> str:
             return f"❌ 页码错误：当前只有 {total_pages} 页"
 
         # 计算分页数据
-        start = (page - 1) * ITEMS_PER_PAGE
-        end = start + ITEMS_PER_PAGE
+        start = (page - 1) *  constants.SHOP_ITEMS_PER_PAGE
+        end = start +  constants.SHOP_ITEMS_PER_PAGE
         page_items = list(shop_handler.data.items())[start:end]
 
         # 格式化商品列表
