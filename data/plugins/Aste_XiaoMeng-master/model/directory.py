@@ -1049,23 +1049,45 @@ class UnifiedCreelManager:
         return records
 
     def get_user_summary(self, account: str) -> Dict:
-        """获取用户渔获概览"""
+        """获取用户渔获概览（含每种鱼的总重量统计）
+
+        :param account: 用户账号（如 "user123"）
+        :return: 字典，包含以下字段：
+            - account: 用户账号
+            - total_catches: 总捕获次数（所有鱼的重量记录数之和）
+            - total_weight: 总重量（所有鱼的重量之和，单位：重量单位）
+            - fish_types: 鱼的种类数（不同鱼名的数量）
+            - fish_weights: 每种鱼的总重量（键：鱼名，值：该鱼总重量，单位：重量单位）
+        :raises ValueError: 用户不存在时抛出
+        """
         data = self._load_data()
         user_data = data.get(account)
         if not user_data:
             raise ValueError(f"用户 {account} 不存在")
 
+        # 初始化概览字典（新增 fish_weights 字段）
         summary = {
-            "account": account,
             "total_catches": 0,
             "total_weight": 0.0,
-            "fish_types": len(user_data["fish_records"])
+            "fish_types": len(user_data["fish_records"]),
+            "fish_weights": {}  # 新增：每种鱼的总重量（键：鱼名，值：总重量）
         }
 
+        # 遍历每条鱼记录，累加统计值
         for record in user_data["fish_records"]:
-            total_weight = sum(record["weights"])
-            summary["total_catches"] += len(record["weights"])
-            summary["total_weight"] += total_weight
+            fish_name = record["fish_name"]
+            weights = record["weights"]
+            fish_total = sum(weights)  # 当前鱼的总重量
+
+            # 累加全局统计
+            summary["total_catches"] += len(weights)
+            summary["total_weight"] += fish_total
+
+            # 记录当前鱼的总重量（若已存在则累加，否则初始化）
+            if fish_name in summary["fish_weights"]:
+                summary["fish_weights"][fish_name] += fish_total
+            else:
+                summary["fish_weights"][fish_name] = fish_total
 
         return summary
 

@@ -2805,6 +2805,14 @@ def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler)
     return f"好耶！{user_name}钓到了{final_weight}斤重的{fish_name}让我们恭喜TA吧！"
 
 def my_creel(account:str, user_name:str, path) -> str:
+    creel_manager = UnifiedCreelManager(
+            save_dir=path,
+            subdir="City/Record",
+            data_filename="Creel.json"
+        )
+    user_data = creel_manager.get_user_summary(account=account)
+
+
     pass
 
 def my_pond(account:str, user_name:str, path) -> str:

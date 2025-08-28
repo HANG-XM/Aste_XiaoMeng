@@ -146,6 +146,7 @@ class XIAOMENG(Star):
             "钓鱼菜单": city.fish_menu,
             "钓鱼": city.cast_fishing_rod,
             "提竿": city.lift_rod,
+            "我的鱼篓": city.my_creel,
             "金币排行": city.gold_rank,  # 直接引用异步函数
         }
 
