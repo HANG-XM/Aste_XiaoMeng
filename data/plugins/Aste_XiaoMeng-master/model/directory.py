@@ -4,10 +4,11 @@ import math
 from pathlib import Path
 from difflib import get_close_matches
 import random
-from typing import Dict, List, Optional, Any, Tuple, Counter
+from typing import Dict, List, Optional, Any, Tuple
 import os
 import tempfile
 from filelock import FileLock
+from collections import Counter
 
 class IniFileReader:
     """
@@ -419,27 +420,35 @@ class JobFileHandler:
 
         :param job_name: 职位全称（小写）
         :param keywords: 关键词列表（小写）
-        :return: 匹配度得分（越高越相关）
+        :return: 匹配度得分（越高越相关，范围 0-1000）
         """
         score = 0
+        # 计算关键词总长度（用于归一化，避免长关键词主导得分）
         max_possible = sum(len(kw) for kw in keywords)
+        if max_possible == 0:  # 防御空关键词列表
+            return 0
 
-        # 规则1：完全匹配关键词（按出现次数加权）
+        # 规则1：完全匹配关键词（按出现次数加权，并归一化）
         keyword_counts = Counter(keywords)
         for kw, count in keyword_counts.items():
             if kw in job_name:
-                score += (job_name.count(kw) * len(kw))  # 按出现次数和长度加权
+                # 匹配贡献 = （出现次数 × 关键词长度） / 关键词总长度 × 100
+                # （总贡献上限为 100，避免单个长关键词过度影响）
+                match_contribution = (job_name.count(kw) * len(kw)) / max_possible * 100
+                score += min(match_contribution, 100)  # 单规则上限100
 
-        # 规则2：连续关键词匹配（严格顺序匹配）
+        # 规则2：连续关键词匹配（严格顺序匹配，强化高价值匹配）
         combined_kw = "".join(keywords)
         if combined_kw in job_name:
-            score += 300  # 连续匹配高权重
+            # 连续匹配贡献 = 300（固定高权重，但不超过剩余分数空间）
+            score += min(300, 1000 - score)  # 总得分不超过1000
 
-        # 规则3：首词匹配（严格开头匹配）
-        if keywords[0] == job_name[:len(keywords[0])]:
-            score += 200
+        # 规则3：首词匹配（严格开头匹配，补充基础分）
+        if keywords and keywords[0] == job_name[:len(keywords[0])]:
+            # 首词匹配贡献 = 200（固定中等权重）
+            score += min(200, 1000 - score)  # 总得分不超过1000
 
-        return min(score, 1000)
+        return min(score, 1000)  # 最终得分封顶1000
 
     def get_promote_num(self, job_id: str) -> int:
         """
