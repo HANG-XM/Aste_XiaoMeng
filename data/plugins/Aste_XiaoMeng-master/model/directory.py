@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 from difflib import get_close_matches
 import random
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Counter
 import os
 import tempfile
 from filelock import FileLock
@@ -112,48 +112,50 @@ class IniFileReader:
         原子化保存配置到文件（避免并发写入导致数据丢失）
         :param encoding: 写入编码（可选）
         """
-        write_encoding = encoding or self.encoding
-        temp_file = None  # 临时文件句柄
+        lock = FileLock(f"{self.file_path}.lock")
+        with lock:
+            write_encoding = encoding or self.encoding
+            temp_file = None  # 临时文件句柄
 
-        try:
-            # -------------------- 步骤1：创建临时文件 --------------------
-            # 在目标文件同目录下生成临时文件（使用相同前缀，避免跨目录问题）
-            temp_file = tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding=write_encoding,
-                dir=str(self.file_path.parent),  # 与目标文件同目录
-                prefix=f".{self.file_path.name}.tmp.",  # 隐藏临时文件（可选）
-                delete=False  # 手动控制删除（避免异常时残留）
-            )
+            try:
+                # -------------------- 步骤1：创建临时文件 --------------------
+                # 在目标文件同目录下生成临时文件（使用相同前缀，避免跨目录问题）
+                temp_file = tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding=write_encoding,
+                    dir=str(self.file_path.parent),  # 与目标文件同目录
+                    prefix=f".{self.file_path.name}.tmp.",  # 隐藏临时文件（可选）
+                    delete=False  # 手动控制删除（避免异常时残留）
+                )
 
-            # -------------------- 步骤2：写入临时文件 --------------------
-            self.config.write(temp_file)
-            temp_file.flush()  # 强制刷新缓冲区（确保数据写入磁盘）
-            os.fsync(temp_file.fileno())  # 同步文件元数据（可选，增强可靠性）
+                # -------------------- 步骤2：写入临时文件 --------------------
+                self.config.write(temp_file)
+                temp_file.flush()  # 强制刷新缓冲区（确保数据写入磁盘）
+                os.fsync(temp_file.fileno())  # 同步文件元数据（可选，增强可靠性）
 
-            # -------------------- 步骤3：原子重命名 --------------------
-            # 替换原文件（操作系统保证原子性）
-            # 注意：Windows 需先关闭临时文件句柄才能重命名
-            if os.name == "nt":
-                temp_file.close()  # Windows 必须关闭句柄才能重命名
-                os.replace(temp_file.name, str(self.file_path))
-            else:
-                os.replace(temp_file.name, str(self.file_path))  # Unix-like 直接替换
+                # -------------------- 步骤3：原子重命名 --------------------
+                # 替换原文件（操作系统保证原子性）
+                # 注意：Windows 需先关闭临时文件句柄才能重命名
+                if os.name == "nt":
+                    temp_file.close()  # Windows 必须关闭句柄才能重命名
+                    os.replace(temp_file.name, str(self.file_path))
+                else:
+                    os.replace(temp_file.name, str(self.file_path))  # Unix-like 直接替换
 
-        except Exception as e:
-            # -------------------- 异常处理：清理临时文件 --------------------
-            if temp_file and os.path.exists(temp_file.name):
-                try:
-                    os.unlink(temp_file.name)  # 删除残留的临时文件
-                except Exception as cleanup_err:
-                    print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
-            # 抛出原始异常（或包装为自定义异常）
-            raise RuntimeError(f"原子化保存INI文件失败: {self.file_path}, 错误: {e}") from e
+            except Exception as e:
+                # -------------------- 异常处理：清理临时文件 --------------------
+                if temp_file and os.path.exists(temp_file.name):
+                    try:
+                        os.unlink(temp_file.name)  # 删除残留的临时文件
+                    except Exception as cleanup_err:
+                        print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
+                # 抛出原始异常（或包装为自定义异常）
+                raise RuntimeError(f"原子化保存INI文件失败: {self.file_path}, 错误: {e}") from e
 
-        finally:
-            # 确保临时文件句柄关闭（避免资源泄漏）
-            if temp_file:
-                temp_file.close()
+            finally:
+                # 确保临时文件句柄关闭（避免资源泄漏）
+                if temp_file:
+                    temp_file.close()
 
     @staticmethod
     def _parse_config(config: configparser.ConfigParser) -> Dict[str, Dict[str, Any]]:
@@ -568,31 +570,33 @@ class ShopFileHandler:
         Args:
             encoding: 可选参数，指定保存文件的编码。若未传入，则使用类初始化时的 `self.encoding`（默认"utf-8"）
         """
-        # 确定最终使用的编码（优先使用方法参数，否则用类属性）
-        save_encoding = encoding if encoding is not None else self.encoding
+        lock = FileLock(f"{self.file_path}.lock")
+        with lock:
+            # 确定最终使用的编码（优先使用方法参数，否则用类属性）
+            save_encoding = encoding if encoding is not None else self.encoding
 
-        try:
-            # 原子化保存：先写入临时文件，再替换原文件
-            temp_file = tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding=save_encoding,  # 使用最终确定的编码
-                dir=str(self.file_path.parent),
-                prefix=f".{self.file_path.name}.tmp.",
-                delete=False
-            )
-            with temp_file:
-                json.dump(self.data, temp_file, indent=4, ensure_ascii=False)
+            try:
+                # 原子化保存：先写入临时文件，再替换原文件
+                temp_file = tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding=save_encoding,  # 使用最终确定的编码
+                    dir=str(self.file_path.parent),
+                    prefix=f".{self.file_path.name}.tmp.",
+                    delete=False
+                )
+                with temp_file:
+                    json.dump(self.data, temp_file, indent=4, ensure_ascii=False)
 
-            # 替换原文件（操作系统保证原子性）
-            os.replace(temp_file.name, str(self.file_path))
-        except Exception as e:
-            # 清理临时文件
-            if 'temp_file' in locals() and os.path.exists(temp_file.name):
-                try:
-                    os.unlink(temp_file.name)
-                except Exception as cleanup_err:
-                    print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
-            raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
+                # 替换原文件（操作系统保证原子性）
+                os.replace(temp_file.name, str(self.file_path))
+            except Exception as e:
+                # 清理临时文件
+                if 'temp_file' in locals() and os.path.exists(temp_file.name):
+                    try:
+                        os.unlink(temp_file.name)
+                    except Exception as cleanup_err:
+                        print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
+                raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
 
     def update_data(
             self,
@@ -815,31 +819,33 @@ class FishFileHandler:
         Args:
             encoding: 可选参数，指定保存文件的编码。若未传入，则使用类初始化时的 `self.encoding`（默认"utf-8"）
         """
-        # 确定最终使用的编码（优先使用方法参数，否则用类属性）
-        save_encoding = encoding if encoding is not None else self.encoding
+        lock = FileLock(f"{self.file_path}.lock")
+        with lock:
+            # 确定最终使用的编码（优先使用方法参数，否则用类属性）
+            save_encoding = encoding if encoding is not None else self.encoding
 
-        try:
-            # 原子化保存：先写入临时文件，再替换原文件
-            temp_file = tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding=save_encoding,  # 使用最终确定的编码
-                dir=str(self.file_path.parent),
-                prefix=f".{self.file_path.name}.tmp.",
-                delete=False
-            )
-            with temp_file:
-                json.dump(self.data, temp_file, indent=4, ensure_ascii=False)
+            try:
+                # 原子化保存：先写入临时文件，再替换原文件
+                temp_file = tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding=save_encoding,  # 使用最终确定的编码
+                    dir=str(self.file_path.parent),
+                    prefix=f".{self.file_path.name}.tmp.",
+                    delete=False
+                )
+                with temp_file:
+                    json.dump(self.data, temp_file, indent=4, ensure_ascii=False)
 
-            # 替换原文件（操作系统保证原子性）
-            os.replace(temp_file.name, str(self.file_path))
-        except Exception as e:
-            # 清理临时文件
-            if 'temp_file' in locals() and os.path.exists(temp_file.name):
-                try:
-                    os.unlink(temp_file.name)
-                except Exception as cleanup_err:
-                    print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
-            raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
+                # 替换原文件（操作系统保证原子性）
+                os.replace(temp_file.name, str(self.file_path))
+            except Exception as e:
+                # 清理临时文件
+                if 'temp_file' in locals() and os.path.exists(temp_file.name):
+                    try:
+                        os.unlink(temp_file.name)
+                    except Exception as cleanup_err:
+                        print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
+                raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
 
     def update_data(
             self,
