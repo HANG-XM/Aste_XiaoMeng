@@ -207,7 +207,6 @@ class JobFileHandler:
     高效读写JSON文件的工具类，支持自动创建文件/目录、数据增删改查、层级信息提取
     （适配JSON中字符串类型的职位ID）
     """
-
     def __init__(
             self,
             project_root: Path,  # 显式传入最终数据目录的绝对路径（如 F:\...\Data）
@@ -277,17 +276,13 @@ class JobFileHandler:
             raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
 
     def update_data(self, key: str, value: Any) -> None:
-        """
-        直接更新内存中的数据（修改后需调用save()保存到文件）
-
-        :param key: 要更新的键（支持嵌套键，如"20.00.jobName"）
-        :param value: 要设置的新值
-        """
         keys = key.split(".")
         current = self.data
         for i, k in enumerate(keys[:-1]):
             if k not in current:
                 current[k] = {}
+            if not isinstance(current[k], dict):  # 新增类型检查
+                raise ValueError(f"中间键 '{k}' 的值必须为字典类型")
             current = current[k]
         current[keys[-1]] = value
 
@@ -305,7 +300,7 @@ class JobFileHandler:
 
         # 获取所属专业系列ID（如"10"）
         major_id = job_id[:2]
-        major_jobs = self.data["jobSeries"].get(major_id, {})
+        major_jobs = self.data.get(major_id, {})
 
         # 提取所有职位ID并按数值排序
         job_ids = sorted(major_jobs.keys(), key=lambda x: int(x))
@@ -321,7 +316,7 @@ class JobFileHandler:
 
     def get_all_info(self) -> Dict[str, Any]:
         """获取所有职位系列数据（如 {"10": {...}, "20": {...}}）"""
-        return self.data.get("jobSeries", {})
+        return self.data
 
     def get_all_jobs_and_companies(self) -> List[Dict[str, str]]:
         """
@@ -332,7 +327,7 @@ class JobFileHandler:
         all_jobs = []
 
         # 遍历所有专业系列（如 "10"/"20" 等）
-        for major_series in self.data.get("jobSeries", {}).values():
+        for major_series in self.data.values():
             # 防御性编程：确保每个系列都是字典
             if not isinstance(major_series, dict):
                 continue
@@ -365,7 +360,7 @@ class JobFileHandler:
         if not isinstance(job_id, str) or len(job_id) != 4:
             return {}
         major_id = job_id[:2]
-        return self.data.get("jobSeries", {}).get(major_id, {}).get(job_id, {})
+        return self.data.get(major_id, {}).get(job_id, {})
 
     def get_job_info_ex(self, job_name: str) -> List[Dict[str, Any]]:
         """
@@ -388,7 +383,7 @@ class JobFileHandler:
             return []
 
         # 获取职位数据（兼容旧数据结构）
-        job_series = self.data.get("jobSeries", {})
+        job_series = self.data
 
         # 遍历所有职位，收集匹配信息及匹配度得分
         matched_jobs = []
@@ -462,7 +457,7 @@ class JobFileHandler:
         :return: 可晋升的职位数量
         """
         major_id = job_id[:2]
-        major_jobs = self.data.get("jobSeries", {}).get(major_id, {})
+        major_jobs = self.data.get(major_id, {})
         return sum(1 for job_key in major_jobs if job_key > job_id)
 
     def get_promote_chain(self, job_id: str) -> List[str]:
@@ -475,7 +470,7 @@ class JobFileHandler:
             return []
         major_id = job_id[:2]
         # 安全获取当前major下的职位字典，若不存在则为空
-        major_jobs = self.data.get("jobSeries", {}).get(major_id, {})
+        major_jobs = self.data.get(major_id, {})
         # 将职位键转换为整数并排序，确保按等级升序处理
         sorted_job_ids = sorted(major_jobs.keys(), key=lambda x: int(x))
         promote_chain = []
@@ -492,7 +487,7 @@ class JobFileHandler:
         """
 
         # 获取所有职位系列（如 "10"/"20" 等大类）
-        job_series = self.data.get("jobSeries", {})
+        job_series = self.data
 
         # 遍历每个职位系列，查找当前 job_id 所在的系列
         for major_id, jobs in job_series.items():
@@ -518,11 +513,11 @@ class JobFileHandler:
         # 若遍历完所有系列仍未找到当前 job_id
         return None
     def __getitem__(self, key: str) -> Any:
-        """支持通过[]直接访问数据（如handler["jobSeries"]["10"]）"""
+        """支持通过[]直接访问数据（如handler["10"]）"""
         return self.data[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """支持通过[]直接修改数据（如handler["jobSeries"]["10"] = new_data）"""
+        """支持通过[]直接修改数据（如handler["10"] = new_data）"""
         self.data[key] = value
 
     def __repr__(self) -> str:
@@ -653,11 +648,11 @@ class ShopFileHandler:
         current[last_key] = value
 
     def __getitem__(self, key: str) -> Any:
-        """支持通过[]直接访问数据（如handler["jobSeries"]["10"]）"""
+        """支持通过[]直接访问数据（如handler["10"]）"""
         return self.data[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """支持通过[]直接修改数据（如handler["jobSeries"]["10"] = new_data）"""
+        """支持通过[]直接修改数据（如handler["10"] = new_data）"""
         self.data[key] = value
 
     def __repr__(self) -> str:
@@ -900,11 +895,11 @@ class FishFileHandler:
         current[last_key] = value
 
     def __getitem__(self, key: str) -> Any:
-        """支持通过[]直接访问数据（如handler["jobSeries"]["10"]）"""
+        """支持通过[]直接访问数据（如handler["10"]）"""
         return self.data[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """支持通过[]直接修改数据（如handler["jobSeries"]["10"] = new_data）"""
+        """支持通过[]直接修改数据（如handler["10"] = new_data）"""
         self.data[key] = value
 
     def __repr__(self) -> str:

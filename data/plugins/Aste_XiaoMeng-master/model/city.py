@@ -464,11 +464,11 @@ def overwork(account,user_name,path,job_manager:JobFileHandler)->str:
             return random.choice(constants.WORK_WORKING_TEXTS)(user_name,job_name,minutes)
 
 def job_hunting(msg: str,job_manager:JobFileHandler) -> str:
+    """
+    找工作
+    """
     # -------------------- 数据校验与预处理 --------------------
-    if "jobSeries" not in job_manager.data:
-        return "⚠️ 职位数据库结构异常，缺少'jobSeries'字段！"
-
-    job_series_data = job_manager.data["jobSeries"]
+    job_series_data = job_manager.data
     if not job_series_data:
         return "⚠️ 职位数据库为空，请联系管理员初始化数据！"
 
@@ -2728,7 +2728,7 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
         f"请耐心等待 {end_min}-{end_max} 秒后发送【提竿】获取渔获！"
     )
 
-def lift_rod(account:str, user_name:str, path,fish_handler:FishFileHandler) -> str:
+def lift_rod(account:str, user_name:str, path,fish_manager:FishFileHandler) -> str:
     try:
         use_data_manager = IniFileReader(
             project_root=path,
@@ -2770,10 +2770,10 @@ def lift_rod(account:str, user_name:str, path,fish_handler:FishFileHandler) -> s
         return "时间不对，下次再早点或晚点吧，钓鱼失败！"
 
     user_bait = user_fish_data.get("current_bait")
-    user_fish = fish_handler.get_random_fish_by_bait(user_bait)
+    user_fish = fish_manager.get_random_fish_by_bait(user_bait)
     # 已经确定只有一个键值对
     fish_name,fish_data =user_fish.items()
-
+    fish_weight = fish_data["weight"]
     return f"好耶！{user_name}钓到了{fish_name}让我们恭喜TA吧！"
 
 def my_creel(account:str, user_name:str, path) -> str:
