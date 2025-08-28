@@ -7,6 +7,7 @@ import random
 from typing import Dict, List, Optional, Any, Tuple
 import os
 import tempfile
+from filelock import FileLock
 
 class IniFileReader:
     """
@@ -252,28 +253,30 @@ class JobFileHandler:
 
     def save(self) -> None:
         """将内存中的数据保存回JSON文件（原子化保存，避免写入过程中损坏文件）"""
-        try:
-            # 原子化保存：先写入临时文件，再替换原文件
-            temp_file = tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding=self.encoding,
-                dir=str(self.file_path.parent),
-                prefix=f".{self.file_path.name}.tmp.",
-                delete=False
-            )
-            with temp_file:
-                json.dump(self.data, temp_file, indent=4, ensure_ascii=False)
+        lock = FileLock(f"{self.file_path}.lock")
+        with lock:
+            try:
+                # 原子化保存：先写入临时文件，再替换原文件
+                temp_file = tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding=self.encoding,
+                    dir=str(self.file_path.parent),
+                    prefix=f".{self.file_path.name}.tmp.",
+                    delete=False
+                )
+                with temp_file:
+                    json.dump(self.data, temp_file, indent=4, ensure_ascii=False)
 
-            # 替换原文件（操作系统保证原子性）
-            os.replace(temp_file.name, str(self.file_path))
-        except Exception as e:
-            # 清理临时文件
-            if 'temp_file' in locals() and os.path.exists(temp_file.name):
-                try:
-                    os.unlink(temp_file.name)
-                except Exception as cleanup_err:
-                    print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
-            raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
+                # 替换原文件（操作系统保证原子性）
+                os.replace(temp_file.name, str(self.file_path))
+            except Exception as e:
+                # 清理临时文件
+                if 'temp_file' in locals() and os.path.exists(temp_file.name):
+                    try:
+                        os.unlink(temp_file.name)
+                    except Exception as cleanup_err:
+                        print(f"警告：清理临时文件失败 {temp_file.name}: {cleanup_err}")
+                raise RuntimeError(f"保存JSON文件失败: {self.file_path}, 错误: {e}")
 
     def update_data(self, key: str, value: Any) -> None:
         if "." not in key:
