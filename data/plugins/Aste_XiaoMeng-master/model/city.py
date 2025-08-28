@@ -2190,7 +2190,7 @@ def basket(account: str, user_name: str, path) -> str:
     # 最终结果拼接（根据是否有有效物品显示不同内容）
     if items_list:
         header = f"📦 {user_name}的购物篮里有这些宝贝："
-        footer = "\n使用提示：发送「使用 X」可查看/使用物品（X为物品名，如「使用 银鱼竿」）"
+        footer = "\n使用提示：发送「使用 X」使用物品"
         return f"{header}\n" + "\n".join(items_list) + footer
     else:
         return "你的购物篮里暂时没有可用物品～快去商店看看吧！🛍️"
@@ -2701,8 +2701,7 @@ def cast_fishing_rod(account:str, user_name:str, path) -> str:
             "is_fishing": True,
             "start": now_time,
             "end_min": now_time + end_min,
-            "end_max": now_time + end_max,
-            "bait:": user_bait
+            "end_max": now_time + end_max
         })
         fish_manager.save(encoding="utf-8")
     except Exception as e:
@@ -2773,6 +2772,7 @@ def lift_rod(account:str, user_name:str, path:Path,fish_manager:FishFileHandler)
 
     user_bait = user_fish_data.get("current_bait")
     random_fish = fish_manager.get_random_fish_by_bait(user_bait)
+    logger.info(random_fish)
 
     if not random_fish:
         return "没有找到匹配该鱼饵的鱼。"

@@ -1,7 +1,6 @@
 import json
 import configparser
 import math
-import time
 from pathlib import Path
 from difflib import get_close_matches
 import random
@@ -931,7 +930,7 @@ class FishFileHandler:
         matching_fishes = []
         for fish_name, fish_info in self.data.items():
             if bait in fish_info.get("bait", []):
-                matching_fishes.append(fish_info)
+                matching_fishes.append({fish_name: fish_info})
 
         if not matching_fishes:
             return None
