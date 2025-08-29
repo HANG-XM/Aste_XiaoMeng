@@ -1,5 +1,5 @@
 # 模块常量
-from decimal import Decimal, ROUND_HALF_UP  # 引入 Decimal 类型
+from decimal import Decimal  # 引入 Decimal 类型
 
 ERROR_PREFIX = "❌ 操作提示"
 SUCCESS_PREFIX = "✅ 操作完成"
@@ -8,14 +8,47 @@ SUCCESS_PREFIX = "✅ 操作完成"
 CHECK_IN_FIRST_REWARD_GOLD = 500       # 首次签到奖励金币数
 CHECK_IN_FIRST_REWARD_EXP = 100        # 首次签到奖励经验值
 CHECK_IN_FIRST_REWARD_STAMINA = 68     # 首次签到奖励体力值
+# 首次签到提示
+CHECK_IN_FIRST_TIPS = [
+    lambda user_name,reward_coin,reward_exp,reward_stamina:
+        f"🎉 {user_name}第一次签到成功！奖励{reward_coin}金币+{reward_exp}经验+{reward_stamina}体力，开启打工人的第一天～",
+    lambda user_name, reward_coin, reward_exp, reward_stamina:
+        f"🌟 恭喜{user_name}完成首次签到！{reward_coin}金币已到账，经验+{reward_exp}，体力+{reward_stamina}，继续加油哦～",
+    lambda user_name, reward_coin, reward_exp, reward_stamina:
+        f"🎊 {user_name}来啦！首次签到奖励已发放，{reward_coin}金币+{reward_exp}经验+{reward_stamina}体力，打工之路正式启程～"
+]
 
 CHECK_IN_CONTINUOUS_REWARD_GOLD = 200  # 连续签到（非首次）奖励金币数
 CHECK_IN_CONTINUOUS_REWARD_EXP = 28    # 连续签到（非首次）奖励经验值
 CHECK_IN_CONTINUOUS_REWARD_STAMINA = 30 # 连续签到（非首次）奖励体力值
-
+CHECK_IN_CONTINUOUS_TIPS = [  # 连续签到提示
+    lambda user_name, continuous_days, reward_coin, reward_exp, reward_stamina:
+        f"🔥 {user_name}连续签到{continuous_days}天！奖励{reward_coin}金币+{reward_exp}经验+{reward_stamina}体力，离全勤奖又近一步～",
+    lambda user_name, continuous_days, reward_coin, reward_exp, reward_stamina:
+        f"✅ {user_name}今日连签成功！连续{continuous_days}天，金币+{reward_coin}，经验+{reward_exp}，体力+{reward_stamina}，稳住别断～",
+    lambda user_name, continuous_days, reward_coin, reward_exp, reward_stamina:
+        f"💪 {user_name}连签记录更新！{continuous_days}天不停歇，奖励已到账，继续冲～"
+]
 CHECK_IN_BREAK_REWARD_GOLD = 100       # 断签补偿金币数
 CHECK_IN_BREAK_REWARD_EXP = 10         # 断签补偿经验值
 CHECK_IN_BREAK_REWARD_STAMINA = 58    # 断签补偿体力值
+CHECK_IN_BREAK_TIPS = [  # 断签后签到提示
+    lambda user_name, reward_coin, reward_exp, reward_stamina:
+        f"🔄 {user_name}今日重新签到！虽然断了1天，但奖励{reward_coin}金币+{reward_exp}经验+{reward_stamina}体力已发放，明天继续连签吧～",
+    lambda user_name, reward_coin, reward_exp, reward_stamina:
+        f"⏳ {user_name}断签后归来！奖励{reward_coin}金币+{reward_exp}经验+{reward_stamina}体力，连续天数重置为1，今天开始重新累积～",
+    lambda user_name, reward_coin, reward_exp, reward_stamina:
+        f"🌱 {user_name}今日首次签到（上次断签）！奖励{reward_coin}金币+{reward_exp}经验+{reward_stamina}体力，坚持就是胜利～"
+]
+
+
+CHECK_IN_RANDOM_TIPS = [
+    "⌈找工作⌋ 可以寻找心仪的工作哦",
+    "⌈查询⌋ 可以查询当前的个人信息",
+    "⌈背包⌋ 可以查看从商店购买的物品",
+    "⌈领工资⌋ 可以领取辛勤工作的奖励",
+    "预防⌈商店⌋商品不足 尽量提前购买哦",
+]
 
 WORK_DURATION_SECONDS = 3600                       # 单次打工任务的持续时间（单位：秒，当前为1小时）
 
@@ -32,6 +65,7 @@ WORK_ERROR_TEXTS = [
     lambda user_name:
         f"注意！{user_name}的工作记录异常（可能是系统错误）～已帮你重置，发送[找工作]获取最新岗位列表吧～"
 ]
+# 没有工作
 WORK_NO_JOB_TEXTS = [
     lambda user_name:
         f"{user_name} 现在还没有绑定任何工作哦～快发送[找工作]，看看附近有哪些适合的岗位在招人吧！",
@@ -42,7 +76,7 @@ WORK_NO_JOB_TEXTS = [
     lambda user_name:
         f"检测到{user_name}还未入职～是不是还在挑工作？发送[找工作]，'热门'岗位列表已为你准备好！"
 ]
-# 开始工作状态
+# 开始打工状态
 WORK_START_WORK_TEXTS = [
     lambda user_name,jobname:
         f"🎉 {user_name} 成功入职{jobname}！时钟开始转动，专注1小时就能领取今日工资啦～加油冲！",
@@ -55,6 +89,15 @@ WORK_START_WORK_TEXTS = [
     lambda user_name,jobname:
         f"不错哦{user_name}！{jobname}的工作开始～就完事了～"
 ]
+# 开始加班状态
+WORK_START_WORKOVER_TEXTS = [
+    lambda user_name, jobname:
+        f"{user_name}，你开始加班了哦～现在开始工作{jobname}，1小时后就能领工资啦！",
+    lambda user_name, jobname:
+        f"🚀 加班倒计时开始！{user_name}确认开始工作{jobname}，1小时后收获今日工资～",
+    lambda user_name, jobname:
+        f"💼 {jobname}工作已就绪！{user_name}现在开始加班，1小时后即可领取劳动所得～"
+]
 # 工作中剩余时间提示（动态计算）
 WORK_WORKING_TEXTS = [
     lambda user_name, job_name, minutes_remaining:
@@ -66,7 +109,11 @@ WORK_WORKING_TEXTS = [
     lambda user_name, job_name, minutes_remaining:
         f"{user_name} 的{job_name}工作时间进度：还差{minutes_remaining}分钟完成～冲鸭，工资在向你招手！",
     lambda user_name, job_name, minutes_remaining:
-        f"嘿{user_name}，{job_name}的工作还剩{minutes_remaining}分钟～坚持住，马上就能领工资喝奶茶啦～"
+        f"嘿{user_name}，{job_name}的工作还剩{minutes_remaining}分钟～坚持住，马上就能领工资喝奶茶啦～",
+    lambda user_name, job_name, minutes_remaining:
+        f"{user_name}，工作还没做完呢！再坚持{minutes_remaining}分钟，完成就能领工资啦～",
+    lambda user_name, job_name, minutes_remaining:
+        f"别着急～{user_name}再工作{minutes_remaining}分钟，就能拿到今天的工资啦，冲就完事！"
 ]
 # 可领取工资状态（工作完成）
 WORK_REWARD_READY_TEXTS = [
@@ -79,10 +126,91 @@ WORK_REWARD_READY_TEXTS = [
     lambda user_name,jobname:
         f"{user_name} 坚持了1小时{jobname}工作！系统检测到任务完成，现在发送[领工资]就能收获报酬啦～"
 ]
+# 需加班状态（次数超限）
+WORK_OVER_TEXTS = [
+    lambda user_name,jobname:
+        f"{user_name} 今日{jobname}打工次数已达上限～想继续赚钱？发送[加班]，开启额外工作模式吧～",
+    lambda user_name,jobname:
+        f"次数已满{user_name}～但勤劳的人值得更多！发送[加班]，继续为{jobname}奋斗多赚一份工资～",
+    lambda user_name,jobname:
+        f"{user_name} 今天的{jobname}打工次数用完啦～要挑战[加班]模式，再赚一波吗？多劳多得哦～",
+    lambda user_name,jobname:
+        f"叮～{user_name}，{jobname}今日打工次数已达上限～发送[加班]，解锁隐藏的「加班工资」吧～"
+]
+# 新的一天建议打工
 WORK_DATE_RESET_TIPS = [
     lambda user_name:f"🌞 新的一天开始啦！{user_name}昨天的工作记录已清空，快去[打工]领取今日份工资吧～",
     lambda user_name:f"📅 日期切换成功！{user_name}当前工作日期已重置，今天先去[打工]开始新的奋斗吧～",
     lambda user_name:f"⏰ 时间到啦！{user_name}昨天的工作已结束，今天重新[打工]1小时就能领工资咯～"
+]
+# 投简历次数超限提示（当日投递超过时触发）
+SUBMIT_RESUME_LIMIT_TEXTS = [
+    lambda user_name,current_submit_num:
+        f"{user_name}今日已投递{current_submit_num}份简历，HR小姐姐说太多了～明天再来刷新记录吧！",
+    lambda user_name, current_submit_num:
+        f"今日投递额度已达{current_submit_num}次上限～{user_name}先歇会儿，明天此时再发送'投简历 X'试试～",
+    lambda user_name, current_submit_num:
+        f"{user_name}你已经投了{current_submit_num}份啦！今天的简历通道即将关闭，明天再来投递新岗位～"
+]
+# 成功领取工资
+GET_PAID_SUCCESS_TEXTS = [
+    lambda user_name, job_salary:
+        f"🎉 {user_name}工资到账！辛苦搬砖{WORK_DURATION_SECONDS}小时，获得{job_salary}金币～新钱包已鼓起，冲鸭！",
+    lambda user_name, job_salary:
+        f"✨ {user_name}今日份努力有回报！领工资啦～{job_salary}金币已到账，够不够买杯奶茶奖励自己？",
+    lambda user_name, job_salary:
+        f"🚀 {user_name}完成工作！工资发放成功～{job_salary}金币入账，打工人的快乐就是这么简单～"
+]
+# 辞职缴纳费用失败
+RESIGN_NOT_ENOUGH_TEXTS = [
+    lambda user_name, resign_gold, user_gold:
+        f"{user_name} 辞职需要赔偿{resign_gold}金币，但你只有{user_gold}金币～再攒攒再辞职吧！",
+    lambda user_name, resign_gold, user_gold:
+        f"{user_name} 老板说离职要赔{resign_gold}金币，你钱包不够呀～要不先[打工]赚点金币？",
+    lambda user_name, resign_gold, user_gold:
+        f"赔偿金额{resign_gold}金币超过你的钱包啦～{user_name}再工作几天凑够钱再辞职！"
+]
+# 辞职成功提示
+RESIGN_SUCCESS_TEXTS = [
+    lambda user_name, resign_gold, user_gold:
+        f"📝 {user_name}提交辞职申请成功！系统自动扣除{resign_gold}金币作为违约金～",
+    lambda user_name, resign_gold, user_gold:
+        f"✅ 辞职流程完成！{user_name}已清空当前工作记录，赔偿{resign_gold}金币后余额为{user_gold}～",
+    lambda user_name, resign_gold, user_gold:
+        f"🚪 {user_name}正式离职！违约金{resign_gold}金币已扣除，随时可以重新找工作啦～"
+]
+
+JOB_HOPPING_MAX_POSITION_TEXTS = [
+    lambda user_name:
+        f"厉害！{user_name}已经是当前行业的天花板了～暂时没有更高的职位等你挑战啦！",
+    lambda user_name:
+        f"{user_name}已登顶该行业，现有岗位中没有能匹配你能力的新选择，继续保持优势吧～",
+    lambda user_name:
+        f"{user_name}你已经是这个领域的顶尖选手啦！当前没有更适合的高阶职位，享受你的王者时刻～"
+]
+JOB_HOPPING_LIMIT_TEXTS = [
+    lambda user_name:
+        f"{user_name}，今天已经跳过一次槽啦！职场如战场，稳扎稳打更重要，明天再来尝试吧～",
+    lambda user_name:
+        f"今日跳槽额度已用完～{user_name}先在新岗位上积累经验，明天再挑战更好的机会！",
+    lambda user_name:
+        f"跳槽冷却时间未到哦～{user_name}今天先好好工作，明天此时再发送[跳槽]刷新记录～"
+]
+JOB_HOPPING_FAILED_TEXTS = [
+    lambda user_name:
+        f"{user_name}这次跳槽差了点火候～再提升下等级/经验/魅力/金币，下次一定能拿下更好的岗位！",
+    lambda user_name:
+        f"新岗位的要求还没完全满足哦～当前{user_name}的等级/经验/魅力/金币还差一点，继续加油冲！",
+    lambda user_name:
+        f"跳槽失败～新公司的HR觉得你还可以更优秀！提升下属性，下次带着更亮眼的数据来应聘吧～"
+]
+JOB_HOPPING_SUCCESS_TEXTS = [
+    lambda user_name:
+        f"🎉恭喜{user_name}！跳槽成功！新公司的offer已送达，准备好迎接新挑战了吗？",
+    lambda user_name:
+        f"✨{user_name}今日职场进阶！成功入职新岗位，新的同事和项目正在等你解锁～",
+    lambda user_name:
+        f"🚀{user_name}完成完美跳槽！从今天起，你将以更优的身份开启职业新篇章，冲就完事！"
 ]
 
 # 利率配置（年利率，使用 Decimal 保证精度）
@@ -90,8 +218,8 @@ LOAN_ANNUAL_INTEREST_RATE = Decimal('0.1')          # 贷款年利率（10%）
 FIXED_DEPOSIT_ANNUAL_INTEREST_RATE = Decimal('0.04')# 定期存款年利率（4%）
 
 # 金额/时间基准配置
-DEPOSIT_MULTIPLE_BASE = 100                         # 存款/贷款/取款的最小额度（如：至少存100金币）
-FIXED_DEPOSIT_MULTIPLE_BASE = 10000                 # 存定期的最小额度（如：至少存10000金币）
+DEPOSIT_MULTIPLE_BASE = 100                         # 存款/贷款/取款的最小额度（如：至少存款100个金币）
+FIXED_DEPOSIT_MULTIPLE_BASE = 10000                 # 存定期的最小额度（如：至少存款10000个金币）
 SECONDS_PER_YEAR = Decimal('31104000')              # 一年的总秒数（360天×86400秒/天，用于利息计算）
 
 # 转账手续费配置

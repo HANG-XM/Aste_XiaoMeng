@@ -238,3 +238,17 @@ async def get_qq_nickname(qq_number: str,api_type:int) -> str:
             return "⏳ 请求超时（接口响应过慢）"
         except Exception as e:
             return f"❓ 未知错误（错误：{str(e)}）"
+
+def format_salary(base_salary: int) -> str:
+    """
+    将原始工资（单位：元）格式化为「k单位范围字符串」（如：500元→"0.5k-0.6k"）
+    :param base_salary: 原始工资数值（单位：元）
+    :return: 格式化后的工资范围字符串
+    """
+    # 转换为k单位（1k=1000元）
+    salary_k = base_salary / 1000.0
+    # 计算上下限（80%-120%区间）
+    lower = salary_k * 0.8
+    upper = salary_k * 1.2
+    # 保留1位小数并格式化
+    return f"{lower:.1f}k-{upper:.1f}k"
