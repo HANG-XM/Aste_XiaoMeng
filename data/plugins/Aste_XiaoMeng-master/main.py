@@ -148,6 +148,7 @@ class XIAOMENG(Star):
             "提竿": city.lift_rod,
             "我的鱼篓": city.my_creel,
             "金币排行": city.gold_rank,  # 直接引用异步函数
+            "魅力排行": city.charm_rank,  # 直接引用异步函数
         }
 
         # ---------------------- 匹配指令（优先完整匹配） ----------------------

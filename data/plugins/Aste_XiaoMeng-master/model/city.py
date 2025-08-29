@@ -2671,54 +2671,95 @@ def my_creel(account:str, user_name:str, path) -> str:
 def fishing_encyclopedia(account:str, user_name:str, path) -> str:
     pass
 
-
-async def gold_rank(account: str, user_name: str, path) -> str:
+async def generate_rank(
+    account: str,
+    user_name: str,
+    path: Path,
+    sort_key: str,
+    title: str
+) -> str:
+    """
+    通用排行榜生成函数（优化换行与格式）
+    """
     try:
+        # -------------------- 读取用户数据 --------------------
         user_handler = IniFileReader(
             project_root=path,
             subdir_name="City/Personal",
             file_relative_path="Briefly.info",
             encoding="utf-8"
         )
-        user_data = user_handler.read_all()
+        user_data = user_handler.read_all()  # 格式：{账号: {coin: X, charm: Y, ...}}
     except Exception as e:
-        logger.error(f"读取错误：{str(e)}")
+        logger.error(f"读取用户数据失败：{str(e)}")
         return "系统繁忙，请稍后重试！"
 
     if not user_data:
-        return "当前没有用户金币数据。"
+        return "当前没有用户数据。"
 
-    # 生成有效用户列表（账号: 金币）
-    valid_users = [(acc, info.get("coin", 0)) for acc, info in user_data.items()]
+    # -------------------- 生成排行榜核心逻辑 --------------------
+    valid_users = [
+        (acc, info.get(sort_key, 0))
+        for acc, info in user_data.items()
+    ]
+    if not valid_users:
+        return f"当前没有用户{sort_key}数据。"
+
+    # 排序并生成昵称映射（保留前N名）
     sorted_users = sorted(valid_users, key=lambda x: x[1], reverse=True)
     rank_mapping = {acc: idx + 1 for idx, (acc, _) in enumerate(sorted_users)}
+    top_n = constants.RANK_TOP_N  # 明确取前N名（如10）
 
-    # 查询目标用户是否存在
-    target_user = next((user for user in sorted_users if user[0] == account), None)
-    if not target_user:
-        return f"用户 {user_name}（{account}） 无金币数据，未参与排名。"
-
-    # 计算前 N 名（取前 constants.RANK_TOP_N 个用户）
-    top_users = sorted_users[:constants.RANK_TOP_N]
-
-    # 异步获取每个用户的昵称并生成排行榜文本（关键修复）
-    top_info_lines = []
-    for idx, (acc, coin) in enumerate(top_users):
+    # 异步获取昵称并生成排行榜行（每行独立）
+    rank_lines = []
+    for idx, (acc, value) in enumerate(sorted_users[:top_n]):
         try:
-            nickname = await get_qq_nickname(acc,1)  # 等待异步函数返回昵称
-            top_info_lines.append(f"第{idx + 1}名 {nickname} {coin} 金币")
+            nickname = await get_qq_nickname(acc, 2)  # 获取隐藏QQ号（如274****583）
+            rank_line = f"第{idx + 1}名 {nickname} {value} {sort_key.capitalize()}"
         except Exception as e:
-            # 处理昵称获取失败的情况（如记录日志或使用默认值）
             logger.error(f"获取用户 {acc} 昵称失败：{str(e)}")
-            top_info_lines.append(f"第{idx + 1}名 {acc} {coin} 金币")
+            rank_line = f"第{idx + 1}名 {acc} {value} {sort_key.capitalize()}"  # 失败时用账号替代
+        rank_lines.append(rank_line)
 
-    top_info = "\n".join(top_info_lines)  # 拼接所有行
+    # 拼接排行榜主体（每行换行）
+    rank_text = "\n".join(rank_lines)  # 关键：用换行符连接每行
 
-    # 组装最终结果
-    result = (
-        f"📊 金币排行榜（前{len(top_users)}名）：\n{top_info}\n\n"
-        f"👤 {user_name} 第{rank_mapping[account]}名 {target_user[1]} 金币"
+    # -------------------- 生成目标用户信息（独立一行） --------------------
+    target_rank = rank_mapping.get(account)
+    target_value = next((v for acc, v in valid_users if acc == account), 0)
+    if target_rank:
+        target_info = f"当前第{target_rank}名 {user_name} {target_value} {sort_key.capitalize()}"
+    else:
+        target_info = f"👤 {user_name} 无数据，未参与{title}"
+
+    # -------------------- 最终拼接（标题→排名→目标信息，每部分换行） --------------------
+    return (
+        f"📊 {title}（前{top_n}名）：\n"  # 标题单独一行
+        f"{rank_text}\n"  # 排名内容单独一行（已换行）
+        f"{target_info}"  # 目标信息单独一行
     )
-    return result
+
+
+# -------------------- 金币排行（独立调用） --------------------
+async def gold_rank(account: str, user_name: str, path) -> str:
+    """生成金币排行榜（调用通用函数）"""
+    return await generate_rank(
+        account=account,
+        user_name=user_name,
+        path=path,
+        sort_key="coin",
+        title="金币排行榜"
+    )
+
+# -------------------- 魅力排行（独立调用） --------------------
+async def charm_rank(account: str, user_name: str, path) -> str:
+    """生成魅力排行榜（调用通用函数）"""
+    return await generate_rank(
+        account=account,
+        user_name=user_name,
+        path=path,
+        sort_key="charm",
+        title="魅力排行榜"
+    )
 if __name__ == "__main__":
     pass
