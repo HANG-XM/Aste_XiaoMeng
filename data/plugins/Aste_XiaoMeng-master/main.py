@@ -2,6 +2,7 @@ from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 import asyncio
 from astrbot.api import logger
+import astrbot.api.message_components as Comp
 
 from typing import Callable, Dict
 import os
@@ -88,7 +89,7 @@ class XIAOMENG(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
-        """极简事件处理器（自动参数匹配版）"""
+        """极简事件处理器（自动参数匹配版，支持图片/文字响应）"""
         # ---------------------- 预处理上下文参数 ----------------------
         msg = event.get_message_str().strip()  # 去除首尾空格
         user_name = event.get_sender_name()
@@ -175,12 +176,51 @@ class XIAOMENG(Star):
 
             # 执行函数（同步/异步分离）
             if asyncio.iscoroutinefunction(handler):
-                text = await handler(**kwargs)  # 异步函数用 await
+                result  = await handler(**kwargs)  # 异步函数用 await
             else:
-                text = handler(**kwargs)  # 同步函数直接调用
+                result  = handler(**kwargs)  # 同步函数直接调用
 
             # 返回结果
-            yield event.plain_result(text)
+            """
+            chain = [
+                Comp.At(qq=event.get_sender_id()),  # At 消息发送者
+                Comp.Plain("来看这个图："),
+                Comp.Image.fromURL("https://example.com/image.jpg"),  # 从 URL 发送图片
+                Comp.Image.fromFileSystem("path/to/image.jpg"),  # 从本地文件目录发送图片
+                Comp.Plain("这是一个图片。")
+            ]
+            yield event.chain_result(chain)
+            """
+            # ---------------------- 响应类型判断与构造 ----------------------
+            if isinstance(result, str):
+                # 情况1：返回的是图片 URL（网络地址）
+                if result.startswith(("http://", "https://")):
+                    chain = [
+                        Comp.At(qq=event.get_sender_id()),  # @消息发送者
+                        Comp.Plain("来看这个图："),
+                        Comp.Image.fromURL(result),  # 从网络 URL 加载图片
+                        Comp.Plain("（图片来自网络）")
+                    ]
+                    yield event.chain_result(chain)
+                # 情况2：返回的是本地图片路径（需验证文件存在）
+                elif result.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp")):
+                    # 检查文件是否存在（可选，根据实际需求决定是否添加）
+                    if Path(result).exists():
+                        chain = [
+                            # Comp.At(qq=event.get_sender_id()),  # @消息发送者
+                            # Comp.Plain("来看这个图："),
+                            Comp.Image.fromFileSystem(result),  # 从本地文件加载图片
+                            # Comp.Plain("（图片来自本地存储）")
+                        ]
+                        yield event.chain_result(chain)
+                    else:
+                        yield event.plain_result(f"⚠️ 图片文件不存在：{result}")
+                # 情况3：普通文字响应
+                else:
+                    yield event.plain_result(result)
+            # 情况4：非字符串返回值（如二进制数据，需根据实际处理函数调整）
+            else:
+                yield event.plain_result(f"⚠️ 无效的返回类型：{type(result)}（仅支持字符串）")
         except Exception as e:
             logger.error(f"执行指令「{command}」失败: {str(e)}", exc_info=True)
             yield event.plain_result(f"执行指令时出错：{str(e)}")

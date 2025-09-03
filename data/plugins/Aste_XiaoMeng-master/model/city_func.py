@@ -6,6 +6,9 @@ import asyncio
 import json
 
 from datetime import datetime
+
+from PIL import ImageFont
+
 def is_arabic_digit(text: str) -> bool:
     """判断文本是否仅由 0-9 的阿拉伯数字组成"""
     # 空文本直接返回 False
@@ -271,3 +274,12 @@ def format_salary(base_salary: int) -> str:
     upper = salary_k * 1.2
     # 保留1位小数并格式化
     return f"{lower:.1f}k-{upper:.1f}k"
+
+
+# ------------------------------ 系统资源适配 ------------------------------
+def get_system_font(size: int) -> ImageFont.FreeTypeFont:
+    """获取系统字体（示例，需根据实际环境调整）"""
+    try:
+        return ImageFont.truetype("simhei.ttf", size)  # 黑体，需确保存在
+    except:
+        return ImageFont.load_default(size=size)
