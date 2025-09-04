@@ -1,6 +1,6 @@
 from astrbot.api import logger
 
-from model.directory import JobFileHandler,IniFileReader
+from model.data_managers import JobFileHandler,IniFileReader
 from model.city_func import is_arabic_digit, format_salary
 from model import constants
 

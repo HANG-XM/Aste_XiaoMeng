@@ -6,7 +6,7 @@ from astrbot.api import logger
 import asyncio
 from PIL import Image, ImageDraw, ImageFont
 
-from model.directory import IniFileReader
+from model.data_managers import IniFileReader
 from model.city_func import get_qq_nickname,get_system_font
 
 

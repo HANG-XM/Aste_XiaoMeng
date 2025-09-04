@@ -1,7 +1,7 @@
 from astrbot.api import logger
 
 from model import constants
-from model.directory import IniFileReader
+from model.data_managers import IniFileReader
 from model.city_func import get_by_qq,calculate_delta_days
 
 import time

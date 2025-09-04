@@ -2,7 +2,7 @@ from typing import List
 from astrbot.api import logger
 
 from model import constants
-from model.directory import IniFileReader,ShopFileHandler
+from model.data_managers import IniFileReader,ShopFileHandler
 from model.city_func import get_by_qq
 
 def shop_menu():

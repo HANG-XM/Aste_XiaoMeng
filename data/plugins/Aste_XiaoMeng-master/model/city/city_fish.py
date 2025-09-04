@@ -4,7 +4,7 @@ import time
 from astrbot.api import logger
 
 from model import constants
-from model.directory import IniFileReader,FishFileHandler,ShopFileHandler,UnifiedCreelManager
+from model.data_managers import IniFileReader,FishFileHandler,ShopFileHandler,UnifiedCreelManager
 
 def fish_menu():
     return (
