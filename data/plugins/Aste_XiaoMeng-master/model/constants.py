@@ -232,7 +232,29 @@ BAIL_FEE = 200                         # 保释费用
 RELEASED_STAMINA = 2                   # 出狱消耗体力
 PRISON_BREAK_STAMINA = 3               # 越狱消耗体力
 ROB_STAMINA = 2                        # 打劫消耗体力
-ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（含文案、体力消耗、金币变化）
+ROB_SUCCESS_EVENTS = [  # 打劫成功时的随机事件列表（含文案、体力消耗、金币变化）
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"💰 {user_name} 成功打劫了 {robbed_name}，抢到 {coin_amount} 金币！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🎯 {user_name} 计划周密，悄无声息地从 {robbed_name} 手中夺走了 {coin_amount} 金币！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🕶️ {user_name} 化身夜行侠，趁 {robbed_name} 不备，轻松拿下 {coin_amount} 金币！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🤑 {user_name} 运气爆棚，{robbed_name} 钱包大开，{coin_amount} 金币到手！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🦹‍♂️ {user_name} 展现高超身手，{robbed_name} 还没反应过来，{coin_amount} 金币已被顺走！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🎩 {user_name} 乔装打扮，骗过了 {robbed_name}，成功获得 {coin_amount} 金币！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🚗 {user_name} 打劫后迅速驾车离开，{robbed_name} 只能目送 {coin_amount} 金币远去！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🧤 {user_name} 动作干净利落，{robbed_name} 毫无察觉，{coin_amount} 金币轻松到手！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🎲 {user_name} 赌上一把，结果大获全胜，从 {robbed_name} 那里赢得 {coin_amount} 金币！"},
+    lambda user_name, robbed_name, coin_amount:
+        {"text": f"🕵️‍♂️ {user_name} 伪装成侦探，巧妙骗取了 {robbed_name} 的 {coin_amount} 金币！"},
+]
+ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（含文案、体力消耗、金币变化、入狱）
     {"text": "🚔 打劫途中你被巡逻的警察发现了，不仅没抢到，还被罚了 10 金币！",
      "stamina_loss": 1, "coin_change": -10, "jail": False},
     {"text": "🛡 对方一直躲在安全屋，你根本找不到机会下手，空手而归...",
@@ -247,6 +269,30 @@ ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（
      "stamina_loss": 1, "coin_change": 0, "jail": False},
     {"text": "🍀 虽然没抢到，但你在地上捡到了别人掉落的 1 金币！算是安慰奖吧！",
      "stamina_loss": 1, "coin_change": 1, "jail": False},
+    {"text": "😱 你刚靠近目标，对方突然大喊“抓小偷！”，你吓得拔腿就跑，体力消耗不少。",
+     "stamina_loss": 2, "coin_change": 0, "jail": False},
+    {"text": "🚨 警报响起，附近巡逻机器人将你驱赶离开，什么都没捞到。",
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
+    {"text": "🪤 你踩到了对方设下的陷阱，狼狈逃脱，损失了 5 金币。",
+     "stamina_loss": 1, "coin_change": -5, "jail": False},
+    {"text": "👮‍♂️ 警察突然出现，你被带去警局问话，耽误了不少时间。",
+     "stamina_loss": 2, "coin_change": 0, "jail": False},
+    {"text": "🧱 你翻墙时裤子被钩破了，除了丢脸什么都没得到。",
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
+    {"text": "🧑‍⚖️ 路人见义勇为将你拦下，你只好灰溜溜地离开。",
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
+    {"text": "🔒 目标家门紧锁，你连门都没摸到。",
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
+    {"text": "🥚 你被泼了一身脏水，什么都没抢到还丢了面子。",
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
+    {"text": "🚓 你被便衣警察盯上，直接被送进了监狱！",
+     "stamina_loss": 2, "coin_change": -20, "jail": True},
+    {"text": "🪙 虽然没抢到，但在慌乱中捡到2枚硬币，聊胜于无。",
+     "stamina_loss": 1, "coin_change": 2, "jail": False},
+    {"text": "🦶 你刚想动手，结果被对方一脚踹飞，损失了 3 金币。",
+     "stamina_loss": 1, "coin_change": -3, "jail": False},
+    {"text": "🧃 你被对方泼了一杯饮料，狼狈逃走，啥也没捞到。",
+     "stamina_loss": 1, "coin_change": 0, "jail": False},
 ]
 
 FISH_TIME_INTERVAL = 5                   # 钓鱼时间间隔

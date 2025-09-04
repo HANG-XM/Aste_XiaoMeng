@@ -93,21 +93,16 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
         user_manager.update_key(section=victim_qq, key="coin", value=new_victim_gold)
         user_manager.update_key(section=account, key="coin", value=new_robber_gold)
 
-        result_text = f"{user_name} 🎉 恭喜！打劫成功！你获得了 {rob_amount} 金币！（对方损失 {rob_amount} 金币）"
+        result_text = random.choice(constants.ROB_SUCCESS_EVENTS)(user_name,victim_qq,rob_amount)
     else:
         # ❌ 失败逻辑
         event = random.choice(constants.ROB_FAILURE_EVENTS)
         coin_change = event["coin_change"]
-        stamina_loss = event["stamina_loss"]
         jail = event["jail"]
 
         new_robber_gold = max(0, current_robber_gold + coin_change)
-        new_robber_stamina = max(0, current_robber_stamina - stamina_loss)
         # 更新用户数据（仅robber）
-        user_manager.update_section_keys(section=account, data={
-            "coin": new_robber_gold,
-            "stamina": new_robber_stamina
-        })
+        user_manager.update_key(section=account, key="coin", value=new_robber_gold)
         result_text = event["text"]
         if jail:
             result_text += f"{user_name} 你因打劫被关进监狱，剩余入狱秒数：{constants.JAIL_TIME} 秒！"
