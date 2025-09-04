@@ -6,6 +6,7 @@ from model.city_func import preprocess_date_str, calculate_delta_days
 
 from datetime import datetime
 import random
+from pathlib import Path
 
 def xm_main() -> str:
     return (
@@ -18,7 +19,7 @@ def xm_main() -> str:
         f"\n🎣 钓鱼菜单 | 🏆 排行菜单"
         )
 
-def check_in(account:str,user_name:str,path)->str:
+def check_in(account:str,user_name:str,path:Path)->str:
     """
     签到功能
     :param account: 用户账号
@@ -119,7 +120,7 @@ def check_in(account:str,user_name:str,path)->str:
             f"{random.choice(constants.CHECK_IN_RANDOM_TIPS)
             }")
 
-def query(account: str, user_name: str, path) -> str:
+def query(account: str, user_name: str, path:Path) -> str:
     """
     查询用户信息
     :param account: 用户账号
@@ -162,16 +163,26 @@ def query(account: str, user_name: str, path) -> str:
 
     except Exception as e:
         # 优化异常提示语气
-        logger.error(f"用户[{account}]查询异常：{str(e)}")
+        logger.error(f"用户[{account}]查询异常：{str(e)}",exc_info=True)
         return "哎呀，查询时出了点小问题，请稍后再试哦～"
 
-def bind(account: str, user_name: str, msg: str, path) ->str:
-    """处理绑定《逃跑吧少年》手游账号的请求（优化版）"""
-    # -------------------- 步骤1：验证命令格式 --------------------
+def bind(account: str, user_name: str, msg: str, path:Path) ->str:
+    """
+    处理绑定《逃跑吧少年》手游账号的请求，支持格式校验、唯一性校验和详细异常提示。
+    :param account: 用户账号
+    :param user_name: 用户昵称
+    :param msg: 用户输入的绑定命令
+    :param path: 数据目录
+    :return: 绑定结果提示
+    """
+    # 步骤1：验证命令格式
     if not msg.startswith("绑定 "):
-        return f"{user_name} 支持绑定《逃跑吧少年》手游账号\n绑定方法:绑定 游戏ID\n提示：一人仅支持绑定一次！"
-
-    # -------------------- 步骤2：提取并验证游戏ID --------------------
+        return (
+            f"{user_name} 支持绑定《逃跑吧少年》手游账号\n"
+            f"绑定方法:绑定 游戏ID\n"
+            f"提示：一人仅支持绑定一次！"
+        )
+    # 步骤2：提取并验证游戏ID
     parts = msg.split(maxsplit=1)
     if len(parts) < 2:
         return f"{constants.ERROR_PREFIX} 请提供有效游戏ID（如:绑定 1234567）"
@@ -179,45 +190,53 @@ def bind(account: str, user_name: str, msg: str, path) ->str:
     if not game_id.isdigit() or len(game_id) > 9:
         return f"{constants.ERROR_PREFIX} 请提供有效游戏ID（如:绑定 1234567）"
 
-    # -------------------- 初始化游戏管理器 --------------------
+
+  # 步骤3：初始化游戏管理器
     try:
         game_manager = IniFileReader(
             project_root=path,
             subdir_name="City/Personal",
             file_relative_path="Game.info",
+            encoding="utf-8"
         )
     except Exception as e:
-        logger.error(f"初始化游戏管理器失败(用户[{account}]): {str(e)}")
-        return "❌ 系统繁忙，请稍后重试！"
+        logger.error(f"初始化游戏管理器失败(用户[{account}]): {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 系统繁忙，初始化失败，请稍后重试！"
 
-    # -------------------- 检查当前用户是否已绑定 --------------------
+
+    # 步骤4：检查当前用户是否已绑定
     try:
         game_data = game_manager.read_section(account, create_if_not_exists=True)
         current_bound_id = game_data.get("game_id", 0)
         if current_bound_id != 0:
-            return f"{constants.ERROR_PREFIX} 您已绑定游戏ID:{current_bound_id}\n如需更换，请先联系群主解绑！"
+            return (
+                f"{constants.ERROR_PREFIX} 您已绑定游戏ID:{current_bound_id}\n"
+                f"如需更换，请先联系群主解绑！"
+            )
     except Exception as e:
-        logger.error(f"读取用户游戏数据失败(用户[{account}]): {str(e)}")
-        return "❌ 系统繁忙，请稍后重试！"
+        logger.error(f"读取用户游戏数据失败(用户[{account}]): {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 读取绑定信息失败，请稍后重试！"
 
-    # -------------------- 检查游戏ID是否被其他用户绑定 --------------------
+
+    # 步骤5：检查游戏ID是否被其他用户绑定
     try:
-        # 获取所有已绑定游戏的用户
-        all_user_data = game_manager.read_all()  # 获取全量用户数据（格式：{账号: {键值对}}）
+        all_user_data = game_manager.read_all()
         for user_acc, user_data in all_user_data.items():
             if user_acc == account:
-                continue  # 跳过当前用户
+                continue
             if user_data.get("game_id") == game_id:
-                return f"{constants.ERROR_PREFIX} 绑定失败：游戏ID {game_id} 已被账号 {user_acc} 绑定！"
+                return (
+                    f"{constants.ERROR_PREFIX} 绑定失败：游戏ID {game_id} 已被账号 {user_acc} 绑定！"
+                )
     except Exception as e:
-        logger.error(f"查询游戏ID绑定状态失败（游戏ID[{game_id}]）: {str(e)}")
-        return "❌ 系统繁忙，请稍后重试！"
+        logger.error(f"查询游戏ID绑定状态失败（游戏ID[{game_id}]）: {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 查询绑定状态失败，请稍后重试！"
 
-    # -------------------- 绑定并保存数据 --------------------
+    # 步骤6：绑定并保存数据
     try:
         game_manager.update_key(section=account, key="game_id", value=game_id)
         game_manager.save()
         return f"{constants.SUCCESS_PREFIX} 您的游戏ID已绑定为：{game_id}"
     except Exception as e:
-        logger.error(f"保存绑定数据失败（用户[{account}]，游戏ID[{game_id}]）: {str(e)}")
-        return "❌ 绑定成功但数据保存失败，请联系管理员！"
+        logger.error(f"保存绑定数据失败（用户[{account}]，游戏ID[{game_id}]）: {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 绑定成功但数据保存失败，请联系管理员！"
