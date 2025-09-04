@@ -10,14 +10,14 @@ from pathlib import Path
 
 def xm_main() -> str:
     return (
-        f"✨ 小梦菜单 ✨"
-        f"\n————————————"
-        f"\n✅ 签到        | 🔍 查询"
-        f"\n🔗 绑定"
-        f"\n💼 打工菜单 | ⚔️ 打劫菜单"
-        f"\n🏦 银行菜单 | 🏪 商店菜单"
-        f"\n🎣 钓鱼菜单 | 🏆 排行菜单"
-        )
+        "✨ 小梦菜单 ✨"
+        "\n————————————"
+        "\n✅ 签到        | 🔍 查询"
+        "\n🔗 绑定"
+        "\n💼 打工菜单 | ⚔️ 打劫菜单"
+        "\n🏦 银行菜单 | 🏪 商店菜单"
+        "\n🎣 钓鱼菜单 | 🏆 排行菜单"
+    )
 
 def check_in(account:str,user_name:str,path:Path)->str:
     """
@@ -116,9 +116,7 @@ def check_in(account:str,user_name:str,path:Path)->str:
     sign_reader.save(encoding="utf-8")  # 保存签到数据
     user_reader.save(encoding="utf-8")  # 保存用户属性
 
-    return (result_msg + "\n" +
-            f"{random.choice(constants.CHECK_IN_RANDOM_TIPS)
-            }")
+    return f"{result_msg}\n{random.choice(constants.CHECK_IN_RANDOM_TIPS)}"
 
 def query(account: str, user_name: str, path:Path) -> str:
     """
@@ -158,7 +156,7 @@ def query(account: str, user_name: str, path:Path) -> str:
 
             # 组合头部与内容（保持友好格式）
         header = f"你好呀，{user_name}👋～\n—————————\n"
-        content = "\n".join(content_lines)  # 用换行符连接所有字段行
+        content = "\n".join(content_lines)
         return f"{header}{content}"
 
     except Exception as e:
