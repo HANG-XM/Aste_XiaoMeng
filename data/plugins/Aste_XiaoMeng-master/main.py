@@ -156,6 +156,7 @@ class XIAOMENG(Star):
             "游戏助手": city.game_menu,
             "更新公告": city.update_notice,
             "兑换代码": city.special_code,
+            "历史事件": city.history_event,
         }
 
         # ---------------------- 匹配指令（优先完整匹配） ----------------------
