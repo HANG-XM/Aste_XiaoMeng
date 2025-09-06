@@ -1,5 +1,8 @@
 from ..data_managers import GameUpdateManager
+from model.data_managers import IniFileReader
 from model import constants
+from pathlib import Path
+from astrbot.api import logger
 def update_notice(msg:str,game_manager:GameUpdateManager):
 
     # 检查是否请求所有ID列表
@@ -95,14 +98,89 @@ def history_event(msg: str, game_manager: GameUpdateManager):
     
     return result
 
+def bind(account: str, user_name: str, msg: str, path:Path) ->str:
+    """
+    处理绑定《逃跑吧少年》手游账号的请求，支持格式校验、唯一性校验和详细异常提示。
+    :param account: 用户账号
+    :param user_name: 用户昵称
+    :param msg: 用户输入的绑定命令
+    :param path: 数据目录
+    :return: 绑定结果提示
+    """
+    # 步骤1：验证命令格式
+    if not msg.startswith("游戏绑定 "):
+        return (
+            f"{user_name} 支持绑定《逃跑吧少年》手游账号\n"
+            f"绑定方法:游戏绑定 游戏ID\n"
+            f"提示：一人仅支持绑定一次！"
+        )
+    # 步骤2：提取并验证游戏ID
+    parts = msg.split(maxsplit=1)
+    if len(parts) < 2:
+        return f"{constants.ERROR_PREFIX} 请提供有效游戏ID（如:游戏绑定 1234567）"
+    game_id = parts[1].strip()
+    if not game_id.isdigit() or len(game_id) > 9:
+        return f"{constants.ERROR_PREFIX} 请提供有效游戏ID（如:游戏绑定 1234567）"
+
+
+  # 步骤3：初始化游戏管理器
+    try:
+        game_manager = IniFileReader(
+            project_root=path,
+            subdir_name="City/Personal",
+            file_relative_path="Game.info",
+            encoding="utf-8"
+        )
+    except Exception as e:
+        logger.error(f"初始化游戏管理器失败(用户[{account}]): {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 系统繁忙，初始化失败，请稍后重试！"
+
+
+    # 步骤4：检查当前用户是否已绑定
+    try:
+        game_data = game_manager.read_section(account, create_if_not_exists=True)
+        current_bound_id = game_data.get("game_id", 0)
+        if current_bound_id != 0:
+            return (
+                f"{constants.ERROR_PREFIX} 您已绑定游戏ID:{current_bound_id}\n"
+                f"如需更换，请先联系群主解绑！"
+            )
+    except Exception as e:
+        logger.error(f"读取用户游戏数据失败(用户[{account}]): {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 读取绑定信息失败，请稍后重试！"
+
+
+    # 步骤5：检查游戏ID是否被其他用户绑定
+    try:
+        all_user_data = game_manager.read_all()
+        for user_acc, user_data in all_user_data.items():
+            if user_acc == account:
+                continue
+            if user_data.get("game_id") == game_id:
+                return (
+                    f"{constants.ERROR_PREFIX} 绑定失败：游戏ID {game_id} 已被账号 {user_acc} 绑定！"
+                )
+    except Exception as e:
+        logger.error(f"查询游戏ID绑定状态失败（游戏ID[{game_id}]）: {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 查询绑定状态失败，请稍后重试！"
+
+    # 步骤6：绑定并保存数据
+    try:
+        game_manager.update_key(section=account, key="game_id", value=game_id)
+        game_manager.save()
+        return f"{constants.SUCCESS_PREFIX} 您的游戏ID已绑定为：{game_id}"
+    except Exception as e:
+        logger.error(f"保存绑定数据失败（用户[{account}]，游戏ID[{game_id}]）: {str(e)}", exc_info=True)
+        return f"{constants.ERROR_PREFIX} 绑定成功但数据保存失败，请联系管理员！"
+
 def game_menu():
     return (f"🎮 逃跑吧少年游戏助手\n"
-            f"━" * 10 + "\n"
-            f"1️⃣ 更新公告\n"
-            f"   查看游戏最新更新内容\n\n"
-            f"2️⃣ 兑换代码\n"
-            f"   获取游戏内可用兑换码\n\n"
-            f"3️⃣ 历史事件\n"
+            f"1️⃣ 游戏绑定\n"
+            f"   绑定唯一逃少游戏账号\n"
+            f"2️⃣ 更新公告\n"
+            f"   查看游戏最新更新内容\n"
+            f"3️⃣ 兑换代码\n"
+            f"   获取游戏内可用兑换码\n"
+            f"4️⃣ 历史事件\n"
             f"   浏览游戏历史事件记录\n"
-            f"━" * 10 + "\n"
             f"💡 提示：发送对应名称选择功能，例如：更新公告")

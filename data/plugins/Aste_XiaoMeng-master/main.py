@@ -116,7 +116,6 @@ class XIAOMENG(Star):
             "小梦菜单": city.xm_main,
             "签到": city.check_in,
             "查询": city.query,
-            "绑定": city.bind,
             #"打工菜单": city.work_menu,
             #"打工": city.work,
             #"加班": city.overwork,
@@ -154,6 +153,7 @@ class XIAOMENG(Star):
             "金币排行": city.gold_rank,  # 直接引用异步函数
             "魅力排行": city.charm_rank,  # 直接引用异步函数
             "游戏助手": city.game_menu,
+            "游戏绑定": city.bind,
             "更新公告": city.update_notice,
             "兑换代码": city.special_code,
             "历史事件": city.history_event,
