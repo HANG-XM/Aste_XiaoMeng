@@ -808,28 +808,9 @@ def submit_resume(account,user_name,msg,path,job_manager:JobFileHandler) -> str:
         user_manager.save(encoding="utf-8")
         work_manager.save(encoding="utf-8")
 
-        # 成功入职提示（投递通过时触发）
-        success_tips = [
-            f"🎉 恭喜{user_name}！成功入职[{job_name}]～新公司的工位和同事已准备就绪，职场新征程开始啦！",
-            f"✨ {user_name}太棒了！{job_name}的offer已送达，准备好迎接新任务和团队小伙伴了吗？冲就完事～",
-            f"🚀 {user_name}完成完美投递！从今天起，你将以新身份在[{job_name}]开启职业升级，未来可期～"
-        ]
+        return random.choice(constants.SUBMIT_RESUME_SUCCESS_TEXTS)(user_name,job_name)
 
-        return random.choice(success_tips).format(job_name=job_name) + "发送⌈打工⌋开始今天的努力哦！"
-
-    # 属性不足提示（用户未达标时触发）
-    fail_tips = [
-        f"很遗憾～{job_name}的HR觉得你还可以更优秀！当前等级/经验/魅力/金币还差一点，继续提升吧～",
-        f"{user_name}这次差了点火候～{job_name}要求等级≥{req_level}、经验≥{req_exp}、魅力≥{req_charm}、金币≥{req_gold}，加油冲！",
-        f"抱歉～{job_name}的岗位要求你再努把力！等级/经验/魅力/金币还没达标，提升后下次再来挑战～"
-    ]
-    return random.choice(fail_tips).format(
-        job_name=job_name,
-        req_level=req_level,
-        req_exp=req_exp,
-        req_charm=req_charm,
-        req_gold=req_gold
-    )
+    return random.choice(constants.SUBMIT_RESUME_FAIL_TEXTS)(user_name,job_name,req_level,req_exp,req_charm,req_gold)
 
 def _work_clear(account_id: str, manager: IniFileReader) -> None:
     """

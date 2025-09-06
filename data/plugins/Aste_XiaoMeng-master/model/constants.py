@@ -41,13 +41,35 @@ CHECK_IN_BREAK_TIPS = [  # 断签后签到提示
         f"🌱 {user_name}今日首次签到（上次断签）！奖励{reward_coin}金币+{reward_exp}经验+{reward_stamina}体力，坚持就是胜利～"
 ]
 
-
 CHECK_IN_RANDOM_TIPS = [
-    "⌈找工作⌋ 可以寻找心仪的工作哦",
-    "⌈查询⌋ 可以查询当前的个人信息",
-    "⌈背包⌋ 可以查看从商店购买的物品",
-    "⌈领工资⌋ 可以领取辛勤工作的奖励",
-    "预防⌈商店⌋商品不足 尽量提前购买哦",
+    "🌟 今天也要元气满满地打工哦！别忘了⌈找工作⌋，开启新人生！",
+    "👜 背包里是不是又多了什么？⌈背包⌋看看你的新收获吧！",
+    "💸 记得⌈领工资⌋，辛苦一天，奖励不能少！",
+    "🛒 商店新品上架，⌈商店⌋逛一逛，说不定有惊喜！",
+    "💪 体力满满，⌈加班⌋赚点外快，生活更精彩！",
+    "🚀 想要更高薪？⌈跳槽⌋试试，说不定下一个就是你！",
+    "📄 投递简历，梦想职位等你来拿，⌈投简历⌋冲冲冲！",
+    "🏢 工作池里机会多多，⌈工作池⌋看看有没有心动的公司！",
+    "😎 累了可以⌈辞职⌋，换个赛道继续闯荡！",
+    "🔍 想了解岗位详情？⌈查工作⌋输入职位ID或名称就行！",
+    "🏆 排行榜等你来挑战，⌈排行榜⌋看看你排第几？",
+    "🎣 钓鱼时间到，⌈钓鱼⌋放松一下，顺便收集稀有鱼类！",
+    "🐟 我的鱼篓里藏着什么宝贝？⌈我的鱼篓⌋查查吧！",
+    "🏦 金币多了别忘了⌈银行⌋存起来，理财有道！",
+    "💳 资金紧张？⌈贷款⌋帮你解燃眉之急，记得⌈还款⌋哦！",
+    "💰 想让金币生息？⌈存定期⌋享受利息奖励！",
+    "🤝 想和朋友互动？⌈转账⌋金币送温暖！",
+    "🕵️‍♂️ 小心被打劫，合理安排体力和金币，⌈打劫⌋也要讲策略！",
+    "🔧 装备坏了？⌈修复⌋鱼竿，继续征战钓鱼场！",
+    "🎁 背包道具别忘了⌈使用⌋，属性提升不是梦！",
+    "🛍 想买啥直接⌈购买⌋，虚拟生活也要精致！",
+    "📅 连续⌈签到⌋有惊喜，别断签哦！",
+    "🔗 绑定游戏账号，解锁更多专属内容，⌈绑定⌋走起！",
+    "🏢 达到顶级职位后可公司创业，招贤纳士不是梦！",
+    "📢 关注⌈公告⌋，不错过任何活动和福利！",
+    "❓ 不会用？⌈小梦菜单⌋一键查指令，玩法全知道！",
+    "🤗 多多互动，结识小伙伴，一起打造你的虚拟人生！",
+    "🌈 今天也要元气满满，小梦陪你一起成长！",
 ]
 
 WORK_DURATION_SECONDS = 3600                       # 单次打工任务的持续时间（单位：秒，当前为1小时）
@@ -118,13 +140,13 @@ WORK_WORKING_TEXTS = [
 # 可领取工资状态（工作完成）
 WORK_REWARD_READY_TEXTS = [
     lambda user_name,jobname:
-        f"⏰ {user_name} 的{jobname}工作时间已满！点击[领工资]，辛苦1小时的报酬马上到账～",
+        f"⏰ {user_name} 的{jobname}工作时间已满！点击[领工资]，辛苦1小时的报酬马上到账~",
     lambda user_name,jobname:
-        f"完工！{user_name} 专注工作1小时，{jobname}的工资已备好，发送[领工资]就能领取啦～",
+        f"完工！{user_name} 专注工作1小时，{jobname}的工资已备好，发送[领工资]就能领取啦~",
     lambda user_name,jobname:
-        f"时间到～{user_name} 的{jobname}打工任务圆满完成！[领工资]按钮已点亮，速来查收工资～",
+        f"时间到～{user_name} 的{jobname}打工任务圆满完成！[领工资]按钮已点亮，速来查收工资~",
     lambda user_name,jobname:
-        f"{user_name} 坚持了1小时{jobname}工作！系统检测到任务完成，现在发送[领工资]就能收获报酬啦～"
+        f"{user_name} 坚持了1小时{jobname}工作！系统检测到任务完成，现在发送[领工资]就能收获报酬啦~"
 ]
 # 需加班状态（次数超限）
 WORK_OVER_TEXTS = [
@@ -141,21 +163,39 @@ WORK_OVER_TEXTS = [
 WORK_DATE_RESET_TIPS = [
     lambda user_name:f"🌞 新的一天开始啦！{user_name}昨天的工作记录已清空，快去[打工]领取今日份工资吧～",
     lambda user_name:f"📅 日期切换成功！{user_name}当前工作日期已重置，今天先去[打工]开始新的奋斗吧～",
-    lambda user_name:f"⏰ 时间到啦！{user_name}昨天的工作已结束，今天重新[打工]1小时就能领工资咯～"
+    lambda user_name:f"⏰ 时间到啦！{user_name}昨天的工作已结束，今天重新[打工]1小时就能领工资咯~"
 ]
-# 投简历次数超限提示（当日投递超过时触发）
+# 投简历成功入职提示
+SUBMIT_RESUME_SUCCESS_TEXTS = [
+    lambda user_name,job_name:
+        f"🎉 恭喜{user_name}！成功入职[{job_name}]～新公司的工位和同事已准备就绪，职场新征程开始啦！发送⌈打工⌋开始今天的努力哦！",
+    lambda user_name,job_name:        
+        f"✨ {user_name}太棒了！{job_name}的offer已送达，准备好迎接新任务和团队小伙伴了吗？冲就完事~发送⌈打工⌋开始今天的努力哦！",
+    lambda user_name,job_name:
+        f"🚀 {user_name}完成完美投递！从今天起，你将以新身份在[{job_name}]开启职业升级，未来可期~发送⌈打工⌋开始今天的努力哦！"
+]
+# 投简历失败提示
+SUBMIT_RESUME_FAIL_TEXTS = [
+    lambda user_name,job_name,req_level,req_exp,req_charm,req_gold:
+        f"{user_name} 很遗憾～{job_name}的HR觉得你还可以更优秀！当前等级/经验/魅力/金币还差一点，继续提升吧～",
+    lambda user_name,job_name,req_level,req_exp,req_charm,req_gold:
+        f"{user_name} 这次差了点火候～{job_name}要求等级≥{req_level}、经验≥{req_exp}、魅力≥{req_charm}、金币≥{req_gold}，加油冲！",
+    lambda user_name,job_name,req_level,req_exp,req_charm,req_gold:
+        f"{user_name} 抱歉～{job_name}的岗位要求你再努把力！等级/经验/魅力/金币还没达标，提升后下次再来挑战～"
+]
+# 投简历次数超限提示
 SUBMIT_RESUME_LIMIT_TEXTS = [
     lambda user_name,current_submit_num:
-        f"{user_name}今日已投递{current_submit_num}份简历，HR小姐姐说太多了～明天再来刷新记录吧！",
+        f"{user_name}今日已投递{current_submit_num}份简历，HR小姐姐说太多了~明天再来刷新记录吧！",
     lambda user_name, current_submit_num:
         f"今日投递额度已达{current_submit_num}次上限～{user_name}先歇会儿，明天此时再发送'投简历 X'试试～",
     lambda user_name, current_submit_num:
         f"{user_name}你已经投了{current_submit_num}份啦！今天的简历通道即将关闭，明天再来投递新岗位～"
 ]
-# 成功领取工资
+# 领工资成功领取工资
 GET_PAID_SUCCESS_TEXTS = [
     lambda user_name, job_salary:
-        f"🎉 {user_name}工资到账！辛苦搬砖{WORK_DURATION_SECONDS}小时，获得{job_salary}金币～新钱包已鼓起，冲鸭！",
+        f"🎉 {user_name}工资到账！辛苦搬砖{WORK_DURATION_SECONDS}秒，获得{job_salary}金币～新钱包已鼓起，冲鸭！",
     lambda user_name, job_salary:
         f"✨ {user_name}今日份努力有回报！领工资啦～{job_salary}金币已到账，够不够买杯奶茶奖励自己？",
     lambda user_name, job_salary:
@@ -179,7 +219,7 @@ RESIGN_SUCCESS_TEXTS = [
     lambda user_name, resign_gold, user_gold:
         f"🚪 {user_name}正式离职！违约金{resign_gold}金币已扣除，随时可以重新找工作啦～"
 ]
-
+# 跳槽职位上限提示
 JOB_HOPPING_MAX_POSITION_TEXTS = [
     lambda user_name:
         f"厉害！{user_name}已经是当前行业的天花板了～暂时没有更高的职位等你挑战啦！",
@@ -188,6 +228,7 @@ JOB_HOPPING_MAX_POSITION_TEXTS = [
     lambda user_name:
         f"{user_name}你已经是这个领域的顶尖选手啦！当前没有更适合的高阶职位，享受你的王者时刻～"
 ]
+# 跳槽次数上限提示
 JOB_HOPPING_LIMIT_TEXTS = [
     lambda user_name:
         f"{user_name}，今天已经跳过一次槽啦！职场如战场，稳扎稳打更重要，明天再来尝试吧～",
@@ -196,6 +237,7 @@ JOB_HOPPING_LIMIT_TEXTS = [
     lambda user_name:
         f"跳槽冷却时间未到哦～{user_name}今天先好好工作，明天此时再发送[跳槽]刷新记录～"
 ]
+# 跳槽失败提示
 JOB_HOPPING_FAILED_TEXTS = [
     lambda user_name:
         f"{user_name}这次跳槽差了点火候～再提升下等级/经验/魅力/金币，下次一定能拿下更好的岗位！",
@@ -204,6 +246,7 @@ JOB_HOPPING_FAILED_TEXTS = [
     lambda user_name:
         f"跳槽失败～新公司的HR觉得你还可以更优秀！提升下属性，下次带着更亮眼的数据来应聘吧～"
 ]
+# 跳槽成功提示
 JOB_HOPPING_SUCCESS_TEXTS = [
     lambda user_name:
         f"🎉恭喜{user_name}！跳槽成功！新公司的offer已送达，准备好迎接新挑战了吗？",
