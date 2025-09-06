@@ -2041,3 +2041,6 @@ BUG少了~游戏也更加顺畅了~
     def get_all_history_dates(self):
         """获取所有历史记录的日期列表"""
         return list(self.history.keys())
+    def get_history_by_date(self, date):
+        """根据日期获取历史更新记录"""
+        return self.history.get(date, "未找到该日期的历史记录")
