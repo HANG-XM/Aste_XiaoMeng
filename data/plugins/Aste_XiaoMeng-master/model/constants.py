@@ -346,3 +346,5 @@ FISH_STAMINA = 2                         # 钓鱼消耗体力
 RANK_TOP_N = 8                           # 排行显示个数
 
 SHOP_ITEMS_PER_PAGE = 7                  # 商店每页显示个数
+
+GAME_HISTORY_PER_PAGE = 8                # 游戏历史记录条数
