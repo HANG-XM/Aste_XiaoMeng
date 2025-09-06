@@ -98,6 +98,7 @@ class XIAOMENG(Star):
         path = self.directory
         job_manager = self.job_manager
         fish_manager = self.fish_manager
+        game_manager = self.game_manager
 
         # 上下文参数字典（所有可能的参数）
         ctx = {
@@ -107,6 +108,7 @@ class XIAOMENG(Star):
             "path": path,
             "job_manager": job_manager,
             "fish_manager": fish_manager,
+            "game_manager": game_manager,
         }
 
         # ---------------------- 指令与处理函数映射（直接引用，无参数） ----------------------
@@ -151,8 +153,9 @@ class XIAOMENG(Star):
             "我的鱼篓": city.my_creel,
             "金币排行": city.gold_rank,  # 直接引用异步函数
             "魅力排行": city.charm_rank,  # 直接引用异步函数
-            "更新公告": city.update_notice,
             "游戏助手": city.game_menu,
+            "更新公告": city.update_notice,
+            "兑换代码": city.special_code,
         }
 
         # ---------------------- 匹配指令（优先完整匹配） ----------------------

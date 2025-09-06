@@ -1,10 +1,10 @@
 from ..data_managers import GameUpdateManager
-def update_notice(msg:str,manager:GameUpdateManager):
+def update_notice(msg:str,game_manager:GameUpdateManager):
 
     # 检查是否请求所有ID列表
     if msg == "更新公告":
         # 获取所有ID
-        all_ids = manager.get_all_update_ids()
+        all_ids = game_manager.get_all_update_ids()
         # 每四个ID一行进行格式化
         formatted_ids = []
         for i in range(0, len(all_ids), 4):
@@ -21,7 +21,7 @@ def update_notice(msg:str,manager:GameUpdateManager):
         # 提取特定的ID
         notice_id = msg.replace("更新公告 ", "")
         # 获取并返回特定ID的内容
-        notice_detail = manager.get_update_by_date(notice_id)
+        notice_detail = game_manager.get_update_by_date(notice_id)
         # 添加标题和分隔线
         if notice_detail != "未找到该日期的更新公告":
             result = f"📢 更新公告 ID: {notice_id}\n"
