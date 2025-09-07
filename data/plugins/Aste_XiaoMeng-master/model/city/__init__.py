@@ -5,7 +5,7 @@ from .city_shop import shop_menu, shop, purchase, basket, check_goods, use
 from .city_rob import rob_menu, rob, released, post_bail, prison_break
 from .city_fish import fish_menu, cast_fishing_rod, lift_rod, my_creel, fishing_encyclopedia
 from .city_rank import gold_rank, charm_rank
-from .city_game import update_notice,game_menu,special_code,history_event, bind
+from .city_game import update_notice,game_menu,special_code,history_event, bind,delta_special_code
 
 # 统一导出
 __all__ = [
@@ -16,5 +16,5 @@ __all__ = [
     "rob_menu", "rob", "released", "post_bail", "prison_break",
     "fish_menu", "cast_fishing_rod", "lift_rod", "my_creel", "fishing_encyclopedia",
     "gold_rank", "charm_rank",
-    "update_notice","game_menu","special_code","history_event","bind",
+    "update_notice","game_menu","special_code","history_event","bind","delta_special_code"
 ]

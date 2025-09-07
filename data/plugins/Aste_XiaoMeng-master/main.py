@@ -155,7 +155,8 @@ class XIAOMENG(Star):
             "游戏助手": city.game_menu,
             "游戏绑定": city.bind,
             "更新公告": city.update_notice,
-            "兑换代码": city.special_code,
+            "逃少代码": city.special_code,
+            "​鼠鼠密码": city.delta_special_code,
             "历史事件": city.history_event,
         }
 
