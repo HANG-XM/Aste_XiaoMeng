@@ -90,28 +90,25 @@ class XIAOMENG(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
-        """极简事件处理器（自动参数匹配版，支持图片/文字响应）"""
+        """优化后的事件处理器，提供更高效的指令处理和响应生成"""
         # ---------------------- 预处理上下文参数 ----------------------
-        msg = event.get_message_str().strip()  # 去除首尾空格
+        msg = event.get_message_str().strip()
+        if not msg:
+            return  # 空消息直接返回
         user_name = event.get_sender_name()
         user_account = event.get_sender_id()
-        path = self.directory
-        job_manager = self.job_manager
-        fish_manager = self.fish_manager
-        game_manager = self.game_manager
-
         # 上下文参数字典（所有可能的参数）
         ctx = {
             "account": user_account,
             "user_name": user_name,
             "msg": msg,
-            "path": path,
-            "job_manager": job_manager,
-            "fish_manager": fish_manager,
-            "game_manager": game_manager,
+            "path": self.directory,
+            "job_manager": self.job_manager,
+            "fish_manager": self.fish_manager,
+            "game_manager": self.game_manager,
         }
 
-        # ---------------------- 指令与处理函数映射（直接引用，无参数） ----------------------
+        # ---------------------- 指令与处理函数映射 ----------------------
         command_handlers: Dict[str, Callable] = {
             "小梦菜单": city.xm_main,
             "签到": city.check_in,
@@ -171,54 +168,40 @@ class XIAOMENG(Star):
             # ---------------------- 自动推断参数并调用（核心逻辑） ----------------------
             # 获取函数参数签名（自动识别需要哪些参数）
             sig = inspect.signature(handler)
-            params = sig.parameters
 
-            # 动态生成参数值（按参数名从上下文中取）
-            kwargs = {}
-            for name in params:
-                if name in ctx:
-                    kwargs[name] = ctx[name]
-                else:
-                    # 缺失必要参数时抛出异常（明确提示）
-                    raise ValueError(f"函数 {handler.__name__} 缺少必要参数: {name}")
+            # 只提取函数需要的参数
+            kwargs = {name: ctx[name] for name in sig.parameters if name in ctx}
 
+            # 检查是否有缺失的必要参数
+            missing_params = [name for name in sig.parameters if name not in ctx and sig.parameters[name].default == inspect.Parameter.empty]
+            if missing_params:
+                raise ValueError(f"函数 {handler.__name__} 缺少必要参数: {', '.join(missing_params)}")
+            
             # 执行函数（同步/异步分离）
             if asyncio.iscoroutinefunction(handler):
                 result  = await handler(**kwargs)  # 异步函数用 await
             else:
                 result  = handler(**kwargs)  # 同步函数直接调用
 
-            # 返回结果
-            """
-            chain = [
-                Comp.At(qq=event.get_sender_id()),  # At 消息发送者
-                Comp.Plain("来看这个图："),
-                Comp.Image.fromURL("https://example.com/image.jpg"),  # 从 URL 发送图片
-                Comp.Image.fromFileSystem("path/to/image.jpg"),  # 从本地文件目录发送图片
-                Comp.Plain("这是一个图片。")
-            ]
-            yield event.chain_result(chain)
-            """
+            # ---------------------- 优化后的响应生成 ----------------------
+            if result is None:
+                return  # 处理函数可能不需要响应
+
             # ---------------------- 响应类型判断与构造 ----------------------
             if isinstance(result, str):
                 # 情况1：返回的是图片 URL（网络地址）
                 if result.startswith(("http://", "https://")):
                     chain = [
-                        Comp.At(qq=event.get_sender_id()),  # @消息发送者
-                        Comp.Plain("来看这个图："),
-                        Comp.Image.fromURL(result),  # 从网络 URL 加载图片
-                        Comp.Plain("（图片来自网络）")
+                        Comp.Image.fromURL(result)  # 从网络 URL 加载图片
                     ]
                     yield event.chain_result(chain)
                 # 情况2：返回的是本地图片路径（需验证文件存在）
                 elif result.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp")):
                     # 检查文件是否存在（可选，根据实际需求决定是否添加）
-                    if Path(result).exists():
+                    image_path = Path(result)
+                    if image_path.exists():
                         chain = [
-                            # Comp.At(qq=event.get_sender_id()),  # @消息发送者
-                            # Comp.Plain("来看这个图："),
-                            Comp.Image.fromFileSystem(result),  # 从本地文件加载图片
-                            # Comp.Plain("（图片来自本地存储）")
+                            Comp.Image.fromFileSystem(result)  # 从本地文件加载图片
                         ]
                         yield event.chain_result(chain)
                     else:

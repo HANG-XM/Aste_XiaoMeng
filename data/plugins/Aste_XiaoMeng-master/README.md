@@ -1,9 +1,5 @@
-# helloworld
+XIAOMENG
 
-AstrBot 插件模板
+VERSION: 1.0
 
-A template plugin for AstrBot plugin feature
-
-# 支持
-
-[帮助文档](https://astrbot.app)
+URL: https://github.com/HANG-XM/Aste_XiaoMeng
