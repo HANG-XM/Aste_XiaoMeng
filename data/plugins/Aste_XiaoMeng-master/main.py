@@ -90,15 +90,37 @@ class XIAOMENG(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
-        """优化后的事件处理器，提供更高效的指令处理和响应生成"""
-        # ---------------------- 预处理上下文参数 ----------------------
+        """主消息处理器，负责协调各个处理步骤"""
+        # 1. 准备上下文
+        context = self._prepare_context(event)
+        if not context["msg"]:  # 空消息直接返回
+            return
+        
+        # 2. 获取指令处理器
+        command_handlers = self._get_command_handlers()
+        
+        # 3. 匹配指令
+        command = self._match_command(context["msg"], command_handlers)
+        if not command:
+            return  # 无匹配指令
+        
+        # 4. 执行处理函数并生成响应
+        handler = command_handlers[command]
+        try:
+            result = await self._execute_handler(handler, context)
+            async for response in self._generate_response(event, result, command):
+                yield response
+        except Exception as e:
+            logger.error(f"执行指令「{command}」失败: {str(e)}", exc_info=True)
+            yield event.plain_result(f"执行指令时出错：{str(e)}")
+
+    def _prepare_context(self, event: AstrMessageEvent) -> dict:
+        """准备处理消息所需的上下文参数"""
         msg = event.get_message_str().strip()
-        if not msg:
-            return  # 空消息直接返回
         user_name = event.get_sender_name()
         user_account = event.get_sender_id()
-        # 上下文参数字典（所有可能的参数）
-        ctx = {
+        
+        return {
             "account": user_account,
             "user_name": user_name,
             "msg": msg,
@@ -108,8 +130,9 @@ class XIAOMENG(Star):
             "game_manager": self.game_manager,
         }
 
-        # ---------------------- 指令与处理函数映射 ----------------------
-        command_handlers: Dict[str, Callable] = {
+    def _get_command_handlers(self) -> Dict[str, Callable]:
+        """获取指令与处理函数的映射"""
+        return {
             "小梦菜单": city.xm_main,
             "签到": city.check_in,
             "查询": city.query,
@@ -147,8 +170,8 @@ class XIAOMENG(Star):
             "钓鱼": city.cast_fishing_rod,
             "提竿": city.lift_rod,
             "我的鱼篓": city.my_creel,
-            "金币排行": city.gold_rank,  # 直接引用异步函数
-            "魅力排行": city.charm_rank,  # 直接引用异步函数
+            "金币排行": city.gold_rank,
+            "魅力排行": city.charm_rank,
             "游戏助手": city.game_menu,
             "游戏绑定": city.bind,
             "更新公告": city.update_notice,
@@ -157,64 +180,64 @@ class XIAOMENG(Star):
             "历史事件": city.history_event,
         }
 
-        # ---------------------- 匹配指令（优先完整匹配） ----------------------
-        command = next((cmd for cmd in command_handlers if msg.startswith(cmd)), None)
-        if not command:
-            return  # 无匹配指令
+    def _match_command(self, msg: str, command_handlers: Dict[str, Callable]) -> str:
+        """匹配用户输入的指令"""
+        return next((cmd for cmd in command_handlers if msg.startswith(cmd)), None)
 
-        handler = command_handlers[command]
+    async def _execute_handler(self, handler: Callable, context: dict):
+        """执行处理函数并返回结果"""
+        # 获取函数参数签名
+        sig = inspect.signature(handler)
+        
+        # 只提取函数需要的参数
+        kwargs = {name: context[name] for name in sig.parameters if name in context}
+        
+        # 检查是否有缺失的必要参数
+        missing_params = [
+            name for name in sig.parameters 
+            if name not in context and sig.parameters[name].default == inspect.Parameter.empty
+        ]
+        if missing_params:
+            raise ValueError(f"函数 {handler.__name__} 缺少必要参数: {', '.join(missing_params)}")
+        
+        # 执行函数（同步/异步分离）
+        if asyncio.iscoroutinefunction(handler):
+            return await handler(**kwargs)
+        else:
+            return handler(**kwargs)
 
-        try:
-            # ---------------------- 自动推断参数并调用（核心逻辑） ----------------------
-            # 获取函数参数签名（自动识别需要哪些参数）
-            sig = inspect.signature(handler)
 
-            # 只提取函数需要的参数
-            kwargs = {name: ctx[name] for name in sig.parameters if name in ctx}
 
-            # 检查是否有缺失的必要参数
-            missing_params = [name for name in sig.parameters if name not in ctx and sig.parameters[name].default == inspect.Parameter.empty]
-            if missing_params:
-                raise ValueError(f"函数 {handler.__name__} 缺少必要参数: {', '.join(missing_params)}")
-            
-            # 执行函数（同步/异步分离）
-            if asyncio.iscoroutinefunction(handler):
-                result  = await handler(**kwargs)  # 异步函数用 await
-            else:
-                result  = handler(**kwargs)  # 同步函数直接调用
-
-            # ---------------------- 优化后的响应生成 ----------------------
-            if result is None:
-                return  # 处理函数可能不需要响应
-
-            # ---------------------- 响应类型判断与构造 ----------------------
-            if isinstance(result, str):
-                # 情况1：返回的是图片 URL（网络地址）
-                if result.startswith(("http://", "https://")):
+    async def _generate_response(self, event: AstrMessageEvent, result, command: str):
+        """根据处理函数的结果生成响应"""
+        if result is None:
+            return  # 处理函数可能不需要响应
+        
+        # 响应类型判断与构造
+        if isinstance(result, str):
+            # 情况1：返回的是图片 URL（网络地址）
+            if result.startswith(("http://", "https://")):
+                chain = [
+                    Comp.Image.fromURL(result)  # 从网络 URL 加载图片
+                ]
+                yield event.chain_result(chain)
+            # 情况2：返回的是本地图片路径（需验证文件存在）
+            elif result.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp")):
+                # 检查文件是否存在
+                image_path = Path(result)
+                if image_path.exists():
                     chain = [
-                        Comp.Image.fromURL(result)  # 从网络 URL 加载图片
+                        Comp.Image.fromFileSystem(result)  # 从本地文件加载图片
                     ]
                     yield event.chain_result(chain)
-                # 情况2：返回的是本地图片路径（需验证文件存在）
-                elif result.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp")):
-                    # 检查文件是否存在（可选，根据实际需求决定是否添加）
-                    image_path = Path(result)
-                    if image_path.exists():
-                        chain = [
-                            Comp.Image.fromFileSystem(result)  # 从本地文件加载图片
-                        ]
-                        yield event.chain_result(chain)
-                    else:
-                        yield event.plain_result(f"⚠️ 图片文件不存在：{result}")
-                # 情况3：普通文字响应
                 else:
-                    yield event.plain_result(result)
-            # 情况4：非字符串返回值（如二进制数据，需根据实际处理函数调整）
+                    yield event.plain_result(f"⚠️ 图片文件不存在：{result}")
+            # 情况3：普通文字响应
             else:
-                yield event.plain_result(f"⚠️ 无效的返回类型：{type(result)}（仅支持字符串）")
-        except Exception as e:
-            logger.error(f"执行指令「{command}」失败: {str(e)}", exc_info=True)
-            yield event.plain_result(f"执行指令时出错：{str(e)}")
+                yield event.plain_result(result)
+        # 情况4：非字符串返回值
+        else:
+            yield event.plain_result(f"⚠️ 无效的返回类型：{type(result)}（仅支持字符串）")
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
