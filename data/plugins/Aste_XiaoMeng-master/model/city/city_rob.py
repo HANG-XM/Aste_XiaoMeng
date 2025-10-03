@@ -93,7 +93,7 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
         user_manager.update_key(section=victim_qq, key="coin", value=new_victim_gold)
         user_manager.update_key(section=account, key="coin", value=new_robber_gold)
 
-        result_text = random.choice(constants.ROB_SUCCESS_EVENTS)(user_name,victim_qq,rob_amount)
+        result_text = random.choice(constants.ROB_SUCCESS_EVENTS)(user_name,victim_qq,rob_amount)["text"]
     else:
         # ❌ 失败逻辑
         event = random.choice(constants.ROB_FAILURE_EVENTS)

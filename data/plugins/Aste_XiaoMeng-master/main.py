@@ -212,7 +212,7 @@ class XIAOMENG(Star):
         """根据处理函数的结果生成响应"""
         if result is None:
             return  # 处理函数可能不需要响应
-        
+        logger.info(f"指令「{command}」的返回值：{result}")
         # 响应类型判断与构造
         if isinstance(result, str):
             # 情况1：返回的是图片 URL（网络地址）
