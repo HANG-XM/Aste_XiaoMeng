@@ -142,7 +142,6 @@ def get_dynamic_rob_ratio(victim_gold: int) -> float:
     else:
         return 0.002  # 0.2%
 
-
 async def get_qq_nickname(qq_number: str, api_type: int) -> str:
     """
     通过 QQ 号获取昵称或隐藏账号（支持多接口类型切换）

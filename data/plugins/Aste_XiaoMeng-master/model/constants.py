@@ -272,26 +272,26 @@ RELEASED_STAMINA = 2                   # 出狱消耗体力
 PRISON_BREAK_STAMINA = 3               # 越狱消耗体力
 ROB_STAMINA = 2                        # 打劫消耗体力
 ROB_SUCCESS_EVENTS = [  # 打劫成功时的随机事件列表（含文案、体力消耗、金币变化）
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"💰 {user_name} 成功打劫了 {robbed_name}，抢到 {coin_amount} 金币！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🎯 {user_name} 计划周密，悄无声息地从 {robbed_name} 手中夺走了 {coin_amount} 金币！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🕶️ {user_name} 化身夜行侠，趁 {robbed_name} 不备，轻松拿下 {coin_amount} 金币！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🤑 {user_name} 运气爆棚，{robbed_name} 钱包大开，{coin_amount} 金币到手！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🦹‍♂️ {user_name} 展现高超身手，{robbed_name} 还没反应过来，{coin_amount} 金币已被顺走！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🎩 {user_name} 乔装打扮，骗过了 {robbed_name}，成功获得 {coin_amount} 金币！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🚗 {user_name} 打劫后迅速驾车离开，{robbed_name} 只能目送 {coin_amount} 金币远去！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🧤 {user_name} 动作干净利落，{robbed_name} 毫无察觉，{coin_amount} 金币轻松到手！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🎲 {user_name} 赌上一把，结果大获全胜，从 {robbed_name} 那里赢得 {coin_amount} 金币！"},
-    lambda user_name, robbed_name, coin_amount:
-        {"text": f"🕵️‍♂️ {user_name} 伪装成侦探，巧妙骗取了 {robbed_name} 的 {coin_amount} 金币！"},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"💰 {user_name} 成功打劫了 {robbed_name}，抢到 {robbed_gold} 金币！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🎯 {user_name} 计划周密，悄无声息地从 {robbed_name} 手中夺走了 {robbed_gold} 金币！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🕶️ {user_name} 化身夜行侠，趁 {robbed_name} 不备，轻松拿下 {robbed_gold} 金币！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🤑 {user_name} 运气爆棚，{robbed_name} 钱包大开，{robbed_gold} 金币到手！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🦹‍♂️ {user_name} 展现高超身手，{robbed_name} 还没反应过来，{robbed_gold} 金币已被顺走！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🎩 {user_name} 乔装打扮，骗过了 {robbed_name}，成功获得 {robbed_gold} 金币！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🚗 {user_name} 打劫后迅速驾车离开，{robbed_name} 只能目送 {robbed_gold} 金币远去！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🧤 {user_name} 动作干净利落，{robbed_name} 毫无察觉，{robbed_gold} 金币轻松到手！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🎲 {user_name} 赌上一把，结果大获全胜，从 {robbed_name} 那里赢得 {robbed_gold} 金币！","coin_amount": robbed_gold, "stamina_loss": 2},
+    lambda user_name, robbed_name, robbed_gold:
+        {"text": f"🕵️‍♂️ {user_name} 伪装成侦探，巧妙骗取了 {robbed_name} 的 {robbed_gold} 金币！","coin_amount": robbed_gold, "stamina_loss": 2},
 ]
 ROB_FAILURE_EVENTS = [                 # 打劫失败时的随机事件列表（含文案、体力消耗、金币变化、入狱）
     {"text": "🚔 打劫途中你被巡逻的警察发现了，不仅没抢到，还被罚了 10 金币！",

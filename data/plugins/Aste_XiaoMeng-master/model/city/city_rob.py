@@ -48,14 +48,14 @@ def rob(account:str, user_name:str, msg:str, path) -> str:
         # 计算剩余服刑时间（秒）
         remaining_seconds = max(0, constants.JAIL_TIME - int(current_time - jail_start_time))
         if remaining_seconds > 0:
-            # 提示剩余时间，但不阻止打劫
+            # 提示剩余时间，但阻止打劫
             return f"⚠️ {user_name} 你正在服刑（剩余 {remaining_seconds} 秒），无法打劫！"
         else:
             # 刑期已满但未自动释放（手动触发释放）
             return f"ℹ️ {user_name} 你已刑满，需手动发送[出狱]操作！"
 
     current_robber_stamina = robber_data.get("stamina", 0)
-    if current_robber_stamina < constants.ROB_STAMINA:
+    if current_robber_stamina == 0:
         return f"{user_name} 你现在没有体力了，无法继续打劫！"
     current_victim_gold = victim_data.get("coin", 0)
     if current_victim_gold <= 0:
